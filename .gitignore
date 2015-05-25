@@ -1,0 +1,5 @@
+node_modules/*
+np-debug.log
+.idea
+*.iml
+.c9

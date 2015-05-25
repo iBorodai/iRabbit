@@ -1,0 +1,18 @@
+{
+  "name": "sibIRabbit"
+, "version": "1.0.0"
+, "description": "RammitMQ common interface"
+, "main": "iRabbit.js"
+, "repository": {
+        "type": "git"
+      , "url": "https://github.com/kronius/iRabbit.git"
+  }
+, "dependencies": {
+      , "Q":"~1.4"
+      , "amqp": "~0.2"
+      , "underscore":"~1.8"
+  }
+, "author": "Ivan Boroday"
+, "license": "Apache 2.0"
+, "homepage": "http://shop-in-box.com"
+}
