@@ -1,0 +1,110 @@
+0 info it worked if it ends with ok
+1 verbose cli [ 'D:\\nodejs\\\\node.exe',
+1 verbose cli   'D:\\nodejs\\node_modules\\npm\\bin\\npm-cli.js',
+1 verbose cli   'publish',
+1 verbose cli   './' ]
+2 info using npm@1.4.28
+3 info using node@v0.10.35
+4 verbose node symlink D:\nodejs\\node.exe
+5 verbose publish [ './' ]
+6 verbose cache add [ './', null ]
+7 verbose cache add name=undefined spec="./" args=["./",null]
+8 verbose parsed url { protocol: null,
+8 verbose parsed url   slashes: null,
+8 verbose parsed url   auth: null,
+8 verbose parsed url   host: null,
+8 verbose parsed url   port: null,
+8 verbose parsed url   hostname: null,
+8 verbose parsed url   hash: null,
+8 verbose parsed url   search: null,
+8 verbose parsed url   query: null,
+8 verbose parsed url   pathname: './',
+8 verbose parsed url   path: './',
+8 verbose parsed url   href: './' }
+9 silly lockFile 0ee6c175- ./
+10 verbose lock ./ C:\Users\John\AppData\Roaming\npm-cache\0ee6c175-.lock
+11 verbose tar pack [ 'C:\\Users\\John\\AppData\\Roaming\\npm-cache\\iRabbit\\1.0.0\\package.tgz',
+11 verbose tar pack   './' ]
+12 verbose tarball C:\Users\John\AppData\Roaming\npm-cache\iRabbit\1.0.0\package.tgz
+13 verbose folder ./
+14 info prepublish iRabbit@1.0.0
+15 silly lockFile 04cb2bca-tar tar://./
+16 verbose lock tar://./ C:\Users\John\AppData\Roaming\npm-cache\04cb2bca-tar.lock
+17 silly lockFile ec054718--cache-iRabbit-1-0-0-package-tgz tar://C:\Users\John\AppData\Roaming\npm-cache\iRabbit\1.0.0\package.tgz
+18 verbose lock tar://C:\Users\John\AppData\Roaming\npm-cache\iRabbit\1.0.0\package.tgz C:\Users\John\AppData\Roaming\npm-cache\ec054718--cache-iRabbit-1-0-0-package-tgz.lock
+19 silly lockFile 04cb2bca-tar tar://./
+20 silly lockFile 04cb2bca-tar tar://./
+21 silly lockFile ec054718--cache-iRabbit-1-0-0-package-tgz tar://C:\Users\John\AppData\Roaming\npm-cache\iRabbit\1.0.0\package.tgz
+22 silly lockFile ec054718--cache-iRabbit-1-0-0-package-tgz tar://C:\Users\John\AppData\Roaming\npm-cache\iRabbit\1.0.0\package.tgz
+23 silly lockFile ee6c0a00--npm-cache-iRabbit-1-0-0-package C:\Users\John\AppData\Roaming\npm-cache\iRabbit\1.0.0\package
+24 verbose lock C:\Users\John\AppData\Roaming\npm-cache\iRabbit\1.0.0\package C:\Users\John\AppData\Roaming\npm-cache\ee6c0a00--npm-cache-iRabbit-1-0-0-package.lock
+25 silly lockFile ee6c0a00--npm-cache-iRabbit-1-0-0-package C:\Users\John\AppData\Roaming\npm-cache\iRabbit\1.0.0\package
+26 silly lockFile ee6c0a00--npm-cache-iRabbit-1-0-0-package C:\Users\John\AppData\Roaming\npm-cache\iRabbit\1.0.0\package
+27 silly lockFile 0ee6c175- ./
+28 silly lockFile 0ee6c175- ./
+29 silly publish { name: 'iRabbit',
+29 silly publish   version: '1.0.0',
+29 silly publish   description: 'RabbitMq interface for SIB project',
+29 silly publish   main: 'iRabbit.js',
+29 silly publish   scripts: {},
+29 silly publish   repository: { type: 'git', url: 'https://github.com/kronius/iRabbit.git' },
+29 silly publish   keywords: [ 'RabbitMq', 'AMQP', 'node-amqp', 'SIB' ],
+29 silly publish   author: { name: 'iBoroday', email: 'johncomua@gmail.com' },
+29 silly publish   license: 'ISC',
+29 silly publish   bugs: { url: 'https://github.com/kronius/iRabbit/issues' },
+29 silly publish   homepage: 'https://github.com/kronius/iRabbit',
+29 silly publish   gitHead: '0744a92e4813b32d72e04ac28e38bb9e02942434',
+29 silly publish   readme: 'ERROR: No README data found!',
+29 silly publish   _id: 'iRabbit@1.0.0',
+29 silly publish   _shasum: 'bb3c0e6df8e98e007fbb47c7563c8cc18de60e4f',
+29 silly publish   _from: './' }
+30 verbose request where is /iRabbit
+31 verbose request registry https://registry.npmjs.org/
+32 verbose request id 10d452a731a7fcdc
+33 verbose url raw /iRabbit
+34 verbose url resolving [ 'https://registry.npmjs.org/', './iRabbit' ]
+35 verbose url resolved https://registry.npmjs.org/iRabbit
+36 verbose request where is https://registry.npmjs.org/iRabbit
+37 info trying registry request attempt 1 at 17:11:13
+38 http PUT https://registry.npmjs.org/iRabbit
+39 http 500 https://registry.npmjs.org/iRabbit
+40 info retry will retry, error on last attempt: Error: unexpected status code: 400 : iRabbit
+41 info trying registry request attempt 2 at 17:11:24
+42 http PUT https://registry.npmjs.org/iRabbit
+43 http 500 https://registry.npmjs.org/iRabbit
+44 info retry will retry, error on last attempt: Error: unexpected status code: 400 : iRabbit
+45 info trying registry request attempt 3 at 17:12:25
+46 http PUT https://registry.npmjs.org/iRabbit
+47 http 500 https://registry.npmjs.org/iRabbit
+48 verbose headers { 'content-type': 'application/json',
+48 verbose headers   'cache-control': 'max-age=0',
+48 verbose headers   'content-length': '39',
+48 verbose headers   'accept-ranges': 'bytes',
+48 verbose headers   date: 'Mon, 25 May 2015 14:12:26 GMT',
+48 verbose headers   via: '1.1 varnish',
+48 verbose headers   connection: 'keep-alive',
+48 verbose headers   'x-served-by': 'cache-fra1221-FRA',
+48 verbose headers   'x-cache': 'MISS',
+48 verbose headers   'x-cache-hits': '0',
+48 verbose headers   'x-timer': 'S1432563145.751548,VS0,VE734' }
+49 error publish Failed PUT 500
+50 error Error: unexpected status code: 400 : iRabbit
+50 error     at RegClient.<anonymous> (D:\nodejs\node_modules\npm\node_modules\npm-registry-client\lib\request.js:308:14)
+50 error     at Request._callback (D:\nodejs\node_modules\npm\node_modules\npm-registry-client\lib\request.js:246:65)
+50 error     at Request.self.callback (D:\nodejs\node_modules\npm\node_modules\request\request.js:236:22)
+50 error     at Request.emit (events.js:98:17)
+50 error     at Request.<anonymous> (D:\nodejs\node_modules\npm\node_modules\request\request.js:1142:14)
+50 error     at Request.emit (events.js:117:20)
+50 error     at IncomingMessage.<anonymous> (D:\nodejs\node_modules\npm\node_modules\request\request.js:1096:12)
+50 error     at IncomingMessage.emit (events.js:117:20)
+50 error     at _stream_readable.js:944:16
+50 error     at process._tickCallback (node.js:442:13)
+51 error If you need help, you may report this *entire* log,
+51 error including the npm and node versions, at:
+51 error     <http://github.com/npm/npm/issues>
+52 error System Windows_NT 6.1.7601
+53 error command "D:\\nodejs\\\\node.exe" "D:\\nodejs\\node_modules\\npm\\bin\\npm-cli.js" "publish" "./"
+54 error cwd D:\OpenServer\domains\shop-in-box\z_common\iRabbit
+55 error node -v v0.10.35
+56 error npm -v 1.4.28
+57 verbose exit [ 1, true ]
