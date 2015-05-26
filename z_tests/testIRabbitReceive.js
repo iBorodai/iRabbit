@@ -10,8 +10,8 @@ rabbit.topicSubscribe({
     exchangeName : 'tetsTopicExchange'
   , routingKey : routingKey
 })
-.then(function( q ){
-    console.log('[!] subscribed for topic queue '+q.name+' with routingKey:'+routingKey);
+.then(function( res ){
+    console.log('(i) subscribed for topic queue '+res.queue.name+' with routingKey:'+res.routingKey);
 });
 
 

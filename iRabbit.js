@@ -142,6 +142,13 @@ iRabbit.prototype.initTopic = function( conf ) {
 
     var deferred = Q.defer();
 
+    //if already inited
+    if( this.topics[ config.exchangeName ] ){
+        deferred.resolve( this.topics[ config.exchangeName ] );
+        return deferred.promise;
+    }
+
+    //init topicExchange as usual
     this.connect().then(
         function onConnect(){
             this.topic.exchange = this.connection.exchange(
@@ -248,11 +255,34 @@ iRabbit.prototype.topicSubscribe = function( conf ){
                     if(typeof(config.routingKey)=='string') config.routingKey = [config.routingKey];
                     //subscribe all detected keys
                     for( var i in config.routingKey ){
-                        q.bind( this.config.topic.exchangeName, config.routingKey[i] );
+                        q.bind(
+                            this.config.topic.exchangeName,
+                            config.routingKey[i]
+                            /*, function bindCallback(queue){
+                                //detect acknowledge params
+                                var options = {}
+                                if( typeof(this.config.topic.ack)!='undefined' ) options.ack = true;
+                                if( typeof(this.config.topic.prefetchCount)!='undefined' ) options.prefetchCount= this.config.topic.prefetchCount;
+
+                                q.subscribe(
+                                    options,
+                                    function( message, headers, deliveryInfo, messageObj ){
+                                        this.emit('topic.pull', message, headers, deliveryInfo, messageObj );
+                                    }.bind(this)
+                                ).once('error', function(error) {
+                                    console.log(error);
+                                }).once('basicQosOk', function() {
+                                    //it is supposed it is emmited when subscription is ready, but...
+                                    //it seems is not working :(
+                                }).addCallback(function subscribed(ok){
+                                    //logger.info("Great, subscription done it");
+                                    deferred.resolve( q );
+                                });
+                            }.bind(this)*/
+                        );
                     }
                     //q.on('error',function(e){ console.log('[x]queueError:',e); });
                     q.on('queueBindOk',function(){
-
                         //detect acknowledge params
                         var options = {}
                         if( typeof(this.config.topic.ack)!='undefined' ) options.ack = true;
@@ -270,7 +300,10 @@ iRabbit.prototype.topicSubscribe = function( conf ){
                             //it seems is not working :(
                         }).addCallback(function subscribed(ok){
                             //logger.info("Great, subscription done it");
-                            deferred.resolve( q );
+                            deferred.resolve( {
+                                queue:q,
+                                routingKey:config.routingKey
+                            } );
                         });
 
                     }.bind(this));

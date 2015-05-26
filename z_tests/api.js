@@ -1,7 +1,7 @@
 "use strict";
 
 var config = require("./conf.api.js")
-  , rabbit = require( "../src/iRabbit" )(config.rabbit)
+  , rabbit = require( "../iRabbit" )(config.rabbit)
   , assert = require( 'assert' );
 
 //Get request params
@@ -11,7 +11,7 @@ var publishKey = (process.argv.length>2) ? process.argv[2] : false
 //Check params
 assert.equal(typeof (publishKey), 'string',    "publishKey string expected");
 assert.equal(typeof (message), 'string',    "message string expected");
-assert.equal(typeof (config.rabbit.exchangeName), 'string',    "config.rabbit.exchangeName string expected");
+assert.equal(typeof (config.rabbit.topic.exchangeName), 'string',    "config.rabbit.topic.exchangeName string expected");
 
 //Detect rabbit topic params
 var callbackQueueName = ( typeof(config.rabbit.callbackQueueName)=='string' )?config.rabbit.callbackQueueName:'';
@@ -29,7 +29,7 @@ rabbit.initAndSubscribeQueue(
     //rabbit.callbackQ = q;
 
     return rabbit.initTopic({
-          exchangeName : config.rabbit.exchangeName
+          exchangeName : config.rabbit.topic.exchangeName
         // , ack:true
         // , prefetchCount: 1
     });
@@ -53,7 +53,7 @@ rabbit.on('queue.pull',function(message, headers, deliveryInfo, messageObj){
 });
 
 rabbit.on('topic.push',function(message, publishKey){
-    console.log('[P] message published: '+res.message+', publishKey: '+res.publishKey, '(event)');
+    console.log('[P] message published: '+message+', publishKey: '+publishKey, '(event)');
 });
 rabbit.on('topic.ready',function(){
     rabbit.topicPush(

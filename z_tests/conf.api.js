@@ -13,7 +13,7 @@ module.exports = {
                   enabled : false
               }
         }
-      , callbackQueueName : 'subApiCallbackQueue', //some name or empty for automatic name
+      , callbackQueueName : 'sibApiCallbackQueue' //some name or empty for automatic name
       , topic : {
            exchangeName : 'sibCommonTopicExchange'
          //, queueName : 'sibApiTopicQueue' //for multiple consumers and distribution tasks between them
