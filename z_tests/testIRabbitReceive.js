@@ -1,7 +1,7 @@
 "use strict";
 
-var config = require("../conf.js")
-  , rabbit = require( "../src/iRabbit" )(config.rabbit);
+var config = require("./conf.js")
+  , rabbit = require( "../iRabbit" )(config.rabbit);
 
 
 var routingKey = (process.argv.length>2) ? process.argv[2] : "#";

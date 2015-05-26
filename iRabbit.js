@@ -15,13 +15,7 @@ function iRabbit( config ) {
     this.config = config;
     this.connection = false;
 
-    this.rpc={
-        inQ : false ,
-        callbackQ : false ,
-        countMsg : 0 ,
-        _promises :{} //promises buffer store requests while wating response
-    };
-
+    this.topics={};
     this.topic={
         exchange : false ,
         countMsg : 0 ,
@@ -88,7 +82,7 @@ iRabbit.prototype.initAndSubscribeQueue = function( qName, options ) {
                     q.subscribe(
                         options.subscribe,
                         function( message, headers, deliveryInfo, messageObj ) {
-                            this.emit('queue.pull',message, headers, deliveryInfo, messageObj);
+                            this.emit('queue.pull',message, headers, deliveryInfo, messageObj, q);
                         }.bind(this)
                     ).once(
                         'error',
@@ -155,16 +149,31 @@ iRabbit.prototype.initTopic = function( conf ) {
                 {
                     type:'topic',
                     confirm:true
-                }
+                },
+                function exchangeOpenCallback(exchange){
+                    if(!exchange){
+                        deferred.reject( err );
+                        this.emit('topic.error', err );
+                    }else{
+                        this.topics[ this.topic.exchange.name ] = this.topic.exchange;
+                        deferred.resolve( this.topic.exchange );
+                        this.emit('topic.ready', this.topic.exchange );
+                    }
+                }.bind(this)
             );
+
+            /*
+            //This interface is considered deprecated. https://github.com/postwait/node-amqp#exchangeonopen-callback
             this.topic.exchange.on('error', function onError(err){
                 deferred.reject( err );
                 this.emit('topic.error', err );
             }.bind(this));
+
             this.topic.exchange.on('open', function onOpen(){
+                this.topics[ this.topic.exchange.name ] = this.topic.exchange;
                 deferred.resolve( this.topic.exchange );
                 this.emit('topic.ready', this.topic.exchange );
-            }.bind(this));
+            }.bind(this));*/
 
         }.bind(this)
     );
