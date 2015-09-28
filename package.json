@@ -20,7 +20,7 @@
   },
   "homepage": "https://github.com/kronius/iRabbit",
   "dependencies": {
-        "Q":"~1.4"
+        "q":"~1.4"
       , "amqp": "~0.2"
       , "underscore":"~1.8"
   },
