@@ -1,7 +1,7 @@
 {
   "name": "iRabbit",
-  "version": "1.0.0",
-  "description": "RabbitMq interface for SIB project",
+  "version": "2.0.0",
+  "description": "RabbitMq interface",
   "main": "iRabbit.js",
   "scripts": {},
   "repository": {
@@ -11,8 +11,7 @@
   "keywords": [
     "RabbitMq",
     "AMQP",
-    "node-amqp",
-    "SIB"
+    "amqplib"
   ],
   "license": "ISC",
   "bugs": {
@@ -21,7 +20,7 @@
   "homepage": "https://github.com/kronius/iRabbit",
   "dependencies": {
         "q":"~1.4"
-      , "amqp": "~0.2"
+      , "amqplib": "~0.4"
       , "underscore":"~1.8"
   },
   "author": {

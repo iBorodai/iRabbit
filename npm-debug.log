@@ -1,110 +1,326 @@
 0 info it worked if it ends with ok
-1 verbose cli [ 'D:\\nodejs\\\\node.exe',
-1 verbose cli   'D:\\nodejs\\node_modules\\npm\\bin\\npm-cli.js',
-1 verbose cli   'publish',
-1 verbose cli   './' ]
+1 verbose cli [ 'c:\\nodejs\\node.exe',
+1 verbose cli   'c:\\nodejs\\node_modules\\npm\\bin\\npm-cli.js',
+1 verbose cli   'install' ]
 2 info using npm@1.4.28
-3 info using node@v0.10.35
-4 verbose node symlink D:\nodejs\\node.exe
-5 verbose publish [ './' ]
-6 verbose cache add [ './', null ]
-7 verbose cache add name=undefined spec="./" args=["./",null]
-8 verbose parsed url { protocol: null,
-8 verbose parsed url   slashes: null,
-8 verbose parsed url   auth: null,
-8 verbose parsed url   host: null,
-8 verbose parsed url   port: null,
-8 verbose parsed url   hostname: null,
-8 verbose parsed url   hash: null,
-8 verbose parsed url   search: null,
-8 verbose parsed url   query: null,
-8 verbose parsed url   pathname: './',
-8 verbose parsed url   path: './',
-8 verbose parsed url   href: './' }
-9 silly lockFile 0ee6c175- ./
-10 verbose lock ./ C:\Users\John\AppData\Roaming\npm-cache\0ee6c175-.lock
-11 verbose tar pack [ 'C:\\Users\\John\\AppData\\Roaming\\npm-cache\\iRabbit\\1.0.0\\package.tgz',
-11 verbose tar pack   './' ]
-12 verbose tarball C:\Users\John\AppData\Roaming\npm-cache\iRabbit\1.0.0\package.tgz
-13 verbose folder ./
-14 info prepublish iRabbit@1.0.0
-15 silly lockFile 04cb2bca-tar tar://./
-16 verbose lock tar://./ C:\Users\John\AppData\Roaming\npm-cache\04cb2bca-tar.lock
-17 silly lockFile ec054718--cache-iRabbit-1-0-0-package-tgz tar://C:\Users\John\AppData\Roaming\npm-cache\iRabbit\1.0.0\package.tgz
-18 verbose lock tar://C:\Users\John\AppData\Roaming\npm-cache\iRabbit\1.0.0\package.tgz C:\Users\John\AppData\Roaming\npm-cache\ec054718--cache-iRabbit-1-0-0-package-tgz.lock
-19 silly lockFile 04cb2bca-tar tar://./
-20 silly lockFile 04cb2bca-tar tar://./
-21 silly lockFile ec054718--cache-iRabbit-1-0-0-package-tgz tar://C:\Users\John\AppData\Roaming\npm-cache\iRabbit\1.0.0\package.tgz
-22 silly lockFile ec054718--cache-iRabbit-1-0-0-package-tgz tar://C:\Users\John\AppData\Roaming\npm-cache\iRabbit\1.0.0\package.tgz
-23 silly lockFile ee6c0a00--npm-cache-iRabbit-1-0-0-package C:\Users\John\AppData\Roaming\npm-cache\iRabbit\1.0.0\package
-24 verbose lock C:\Users\John\AppData\Roaming\npm-cache\iRabbit\1.0.0\package C:\Users\John\AppData\Roaming\npm-cache\ee6c0a00--npm-cache-iRabbit-1-0-0-package.lock
-25 silly lockFile ee6c0a00--npm-cache-iRabbit-1-0-0-package C:\Users\John\AppData\Roaming\npm-cache\iRabbit\1.0.0\package
-26 silly lockFile ee6c0a00--npm-cache-iRabbit-1-0-0-package C:\Users\John\AppData\Roaming\npm-cache\iRabbit\1.0.0\package
-27 silly lockFile 0ee6c175- ./
-28 silly lockFile 0ee6c175- ./
-29 silly publish { name: 'iRabbit',
-29 silly publish   version: '1.0.0',
-29 silly publish   description: 'RabbitMq interface for SIB project',
-29 silly publish   main: 'iRabbit.js',
-29 silly publish   scripts: {},
-29 silly publish   repository: { type: 'git', url: 'https://github.com/kronius/iRabbit.git' },
-29 silly publish   keywords: [ 'RabbitMq', 'AMQP', 'node-amqp', 'SIB' ],
-29 silly publish   author: { name: 'iBoroday', email: 'johncomua@gmail.com' },
-29 silly publish   license: 'ISC',
-29 silly publish   bugs: { url: 'https://github.com/kronius/iRabbit/issues' },
-29 silly publish   homepage: 'https://github.com/kronius/iRabbit',
-29 silly publish   gitHead: '0744a92e4813b32d72e04ac28e38bb9e02942434',
-29 silly publish   readme: 'ERROR: No README data found!',
-29 silly publish   _id: 'iRabbit@1.0.0',
-29 silly publish   _shasum: 'bb3c0e6df8e98e007fbb47c7563c8cc18de60e4f',
-29 silly publish   _from: './' }
-30 verbose request where is /iRabbit
-31 verbose request registry https://registry.npmjs.org/
-32 verbose request id 10d452a731a7fcdc
-33 verbose url raw /iRabbit
-34 verbose url resolving [ 'https://registry.npmjs.org/', './iRabbit' ]
-35 verbose url resolved https://registry.npmjs.org/iRabbit
-36 verbose request where is https://registry.npmjs.org/iRabbit
-37 info trying registry request attempt 1 at 17:11:13
-38 http PUT https://registry.npmjs.org/iRabbit
-39 http 500 https://registry.npmjs.org/iRabbit
-40 info retry will retry, error on last attempt: Error: unexpected status code: 400 : iRabbit
-41 info trying registry request attempt 2 at 17:11:24
-42 http PUT https://registry.npmjs.org/iRabbit
-43 http 500 https://registry.npmjs.org/iRabbit
-44 info retry will retry, error on last attempt: Error: unexpected status code: 400 : iRabbit
-45 info trying registry request attempt 3 at 17:12:25
-46 http PUT https://registry.npmjs.org/iRabbit
-47 http 500 https://registry.npmjs.org/iRabbit
-48 verbose headers { 'content-type': 'application/json',
-48 verbose headers   'cache-control': 'max-age=0',
-48 verbose headers   'content-length': '39',
-48 verbose headers   'accept-ranges': 'bytes',
-48 verbose headers   date: 'Mon, 25 May 2015 14:12:26 GMT',
-48 verbose headers   via: '1.1 varnish',
-48 verbose headers   connection: 'keep-alive',
-48 verbose headers   'x-served-by': 'cache-fra1221-FRA',
-48 verbose headers   'x-cache': 'MISS',
-48 verbose headers   'x-cache-hits': '0',
-48 verbose headers   'x-timer': 'S1432563145.751548,VS0,VE734' }
-49 error publish Failed PUT 500
-50 error Error: unexpected status code: 400 : iRabbit
-50 error     at RegClient.<anonymous> (D:\nodejs\node_modules\npm\node_modules\npm-registry-client\lib\request.js:308:14)
-50 error     at Request._callback (D:\nodejs\node_modules\npm\node_modules\npm-registry-client\lib\request.js:246:65)
-50 error     at Request.self.callback (D:\nodejs\node_modules\npm\node_modules\request\request.js:236:22)
-50 error     at Request.emit (events.js:98:17)
-50 error     at Request.<anonymous> (D:\nodejs\node_modules\npm\node_modules\request\request.js:1142:14)
-50 error     at Request.emit (events.js:117:20)
-50 error     at IncomingMessage.<anonymous> (D:\nodejs\node_modules\npm\node_modules\request\request.js:1096:12)
-50 error     at IncomingMessage.emit (events.js:117:20)
-50 error     at _stream_readable.js:944:16
-50 error     at process._tickCallback (node.js:442:13)
-51 error If you need help, you may report this *entire* log,
-51 error including the npm and node versions, at:
-51 error     <http://github.com/npm/npm/issues>
-52 error System Windows_NT 6.1.7601
-53 error command "D:\\nodejs\\\\node.exe" "D:\\nodejs\\node_modules\\npm\\bin\\npm-cli.js" "publish" "./"
-54 error cwd D:\OpenServer\domains\shop-in-box\z_common\iRabbit
-55 error node -v v0.10.35
-56 error npm -v 1.4.28
-57 verbose exit [ 1, true ]
+3 info using node@v0.10.33
+4 verbose readDependencies using package.json deps
+5 verbose install where, deps [ 'c:\\OpenServer\\domains\\shop-in-box\\z_common\\iRabbit',
+5 verbose install   [ 'q', 'amqp.node', 'underscore' ] ]
+6 info preinstall iRabbit@2.0.0
+7 verbose readDependencies using package.json deps
+8 verbose cache add [ 'q@~1.4', null ]
+9 verbose cache add name=undefined spec="q@~1.4" args=["q@~1.4",null]
+10 verbose parsed url { protocol: null,
+10 verbose parsed url   slashes: null,
+10 verbose parsed url   auth: null,
+10 verbose parsed url   host: null,
+10 verbose parsed url   port: null,
+10 verbose parsed url   hostname: null,
+10 verbose parsed url   hash: null,
+10 verbose parsed url   search: null,
+10 verbose parsed url   query: null,
+10 verbose parsed url   pathname: 'q@~1.4',
+10 verbose parsed url   path: 'q@~1.4',
+10 verbose parsed url   href: 'q@~1.4' }
+11 verbose cache add [ 'amqp.node@~0.2', null ]
+12 verbose cache add name=undefined spec="amqp.node@~0.2" args=["amqp.node@~0.2",null]
+13 verbose parsed url { protocol: null,
+13 verbose parsed url   slashes: null,
+13 verbose parsed url   auth: null,
+13 verbose parsed url   host: null,
+13 verbose parsed url   port: null,
+13 verbose parsed url   hostname: null,
+13 verbose parsed url   hash: null,
+13 verbose parsed url   search: null,
+13 verbose parsed url   query: null,
+13 verbose parsed url   pathname: 'amqp.node@~0.2',
+13 verbose parsed url   path: 'amqp.node@~0.2',
+13 verbose parsed url   href: 'amqp.node@~0.2' }
+14 verbose cache add [ 'underscore@~1.8', null ]
+15 verbose cache add name=undefined spec="underscore@~1.8" args=["underscore@~1.8",null]
+16 verbose parsed url { protocol: null,
+16 verbose parsed url   slashes: null,
+16 verbose parsed url   auth: null,
+16 verbose parsed url   host: null,
+16 verbose parsed url   port: null,
+16 verbose parsed url   hostname: null,
+16 verbose parsed url   hash: null,
+16 verbose parsed url   search: null,
+16 verbose parsed url   query: null,
+16 verbose parsed url   pathname: 'underscore@~1.8',
+16 verbose parsed url   path: 'underscore@~1.8',
+16 verbose parsed url   href: 'underscore@~1.8' }
+17 verbose cache add name="q" spec="~1.4" args=["q","~1.4"]
+18 verbose parsed url { protocol: null,
+18 verbose parsed url   slashes: null,
+18 verbose parsed url   auth: null,
+18 verbose parsed url   host: null,
+18 verbose parsed url   port: null,
+18 verbose parsed url   hostname: null,
+18 verbose parsed url   hash: null,
+18 verbose parsed url   search: null,
+18 verbose parsed url   query: null,
+18 verbose parsed url   pathname: '~1.4',
+18 verbose parsed url   path: '~1.4',
+18 verbose parsed url   href: '~1.4' }
+19 verbose addNamed [ 'q', '~1.4' ]
+20 verbose addNamed [ null, '>=1.4.0-0 <1.5.0-0' ]
+21 verbose cache add name="amqp.node" spec="~0.2" args=["amqp.node","~0.2"]
+22 verbose parsed url { protocol: null,
+22 verbose parsed url   slashes: null,
+22 verbose parsed url   auth: null,
+22 verbose parsed url   host: null,
+22 verbose parsed url   port: null,
+22 verbose parsed url   hostname: null,
+22 verbose parsed url   hash: null,
+22 verbose parsed url   search: null,
+22 verbose parsed url   query: null,
+22 verbose parsed url   pathname: '~0.2',
+22 verbose parsed url   path: '~0.2',
+22 verbose parsed url   href: '~0.2' }
+23 verbose addNamed [ 'amqp.node', '~0.2' ]
+24 verbose addNamed [ null, '>=0.2.0-0 <0.3.0-0' ]
+25 verbose cache add name="underscore" spec="~1.8" args=["underscore","~1.8"]
+26 verbose parsed url { protocol: null,
+26 verbose parsed url   slashes: null,
+26 verbose parsed url   auth: null,
+26 verbose parsed url   host: null,
+26 verbose parsed url   port: null,
+26 verbose parsed url   hostname: null,
+26 verbose parsed url   hash: null,
+26 verbose parsed url   search: null,
+26 verbose parsed url   query: null,
+26 verbose parsed url   pathname: '~1.8',
+26 verbose parsed url   path: '~1.8',
+26 verbose parsed url   href: '~1.8' }
+27 verbose addNamed [ 'underscore', '~1.8' ]
+28 verbose addNamed [ null, '>=1.8.0-0 <1.9.0-0' ]
+29 silly lockFile 32725f09-q-1-4 q@~1.4
+30 verbose lock q@~1.4 C:\Users\Иван Бородай\AppData\Roaming\npm-cache\32725f09-q-1-4.lock
+31 silly lockFile 62157cc0-amqp-node-0-2 amqp.node@~0.2
+32 verbose lock amqp.node@~0.2 C:\Users\Иван Бородай\AppData\Roaming\npm-cache\62157cc0-amqp-node-0-2.lock
+33 silly lockFile 209aca41-underscore-1-8 underscore@~1.8
+34 verbose lock underscore@~1.8 C:\Users\Иван Бородай\AppData\Roaming\npm-cache\209aca41-underscore-1-8.lock
+35 silly addNameRange { name: 'q', range: '>=1.4.0-0 <1.5.0-0', hasData: false }
+36 silly addNameRange { name: 'amqp.node',
+36 silly addNameRange   range: '>=0.2.0-0 <0.3.0-0',
+36 silly addNameRange   hasData: false }
+37 silly addNameRange { name: 'underscore',
+37 silly addNameRange   range: '>=1.8.0-0 <1.9.0-0',
+37 silly addNameRange   hasData: false }
+38 verbose request where is /amqp.node
+39 verbose request registry https://registry.npmjs.org/
+40 verbose request id 88d25ec775e0436a
+41 verbose url raw /amqp.node
+42 verbose url resolving [ 'https://registry.npmjs.org/', './amqp.node' ]
+43 verbose url resolved https://registry.npmjs.org/amqp.node
+44 verbose request where is https://registry.npmjs.org/amqp.node
+45 info trying registry request attempt 1 at 23:53:57
+46 http GET https://registry.npmjs.org/amqp.node
+47 verbose request where is /q
+48 verbose request registry https://registry.npmjs.org/
+49 verbose url raw /q
+50 verbose url resolving [ 'https://registry.npmjs.org/', './q' ]
+51 verbose url resolved https://registry.npmjs.org/q
+52 verbose request where is https://registry.npmjs.org/q
+53 info trying registry request attempt 1 at 23:53:57
+54 verbose etag "3V5O9FO6E1ZBGOPQJF7DOG468"
+55 http GET https://registry.npmjs.org/q
+56 verbose request where is /underscore
+57 verbose request registry https://registry.npmjs.org/
+58 verbose url raw /underscore
+59 verbose url resolving [ 'https://registry.npmjs.org/', './underscore' ]
+60 verbose url resolved https://registry.npmjs.org/underscore
+61 verbose request where is https://registry.npmjs.org/underscore
+62 info trying registry request attempt 1 at 23:53:57
+63 verbose etag "D9NGAXEC88QS7A5OOMF2YUTXR"
+64 http GET https://registry.npmjs.org/underscore
+65 http 304 https://registry.npmjs.org/underscore
+66 silly registry.get cb [ 304,
+66 silly registry.get   { date: 'Wed, 07 Oct 2015 20:53:58 GMT',
+66 silly registry.get     via: '1.1 varnish',
+66 silly registry.get     'cache-control': 'max-age=60',
+66 silly registry.get     etag: '"D9NGAXEC88QS7A5OOMF2YUTXR"',
+66 silly registry.get     age: '24',
+66 silly registry.get     connection: 'keep-alive',
+66 silly registry.get     'x-served-by': 'cache-fra1227-FRA',
+66 silly registry.get     'x-cache': 'HIT',
+66 silly registry.get     'x-cache-hits': '1',
+66 silly registry.get     'x-timer': 'S1444251238.612327,VS0,VE0',
+66 silly registry.get     vary: 'Accept' } ]
+67 verbose etag https://registry.npmjs.org/underscore from cache
+68 http 304 https://registry.npmjs.org/q
+69 silly registry.get cb [ 304,
+69 silly registry.get   { date: 'Wed, 07 Oct 2015 20:53:58 GMT',
+69 silly registry.get     via: '1.1 varnish',
+69 silly registry.get     'cache-control': 'max-age=60',
+69 silly registry.get     etag: '"3V5O9FO6E1ZBGOPQJF7DOG468"',
+69 silly registry.get     age: '30',
+69 silly registry.get     connection: 'keep-alive',
+69 silly registry.get     'x-served-by': 'cache-fra1225-FRA',
+69 silly registry.get     'x-cache': 'HIT',
+69 silly registry.get     'x-cache-hits': '1',
+69 silly registry.get     'x-timer': 'S1444251238.616310,VS0,VE1',
+69 silly registry.get     vary: 'Accept' } ]
+70 verbose etag https://registry.npmjs.org/q from cache
+71 silly addNameRange number 2 { name: 'underscore',
+71 silly addNameRange   range: '>=1.8.0-0 <1.9.0-0',
+71 silly addNameRange   hasData: true }
+72 silly addNameRange versions [ 'underscore',
+72 silly addNameRange   [ '1.0.3',
+72 silly addNameRange     '1.0.4',
+72 silly addNameRange     '1.1.0',
+72 silly addNameRange     '1.1.1',
+72 silly addNameRange     '1.1.2',
+72 silly addNameRange     '1.1.3',
+72 silly addNameRange     '1.1.4',
+72 silly addNameRange     '1.1.5',
+72 silly addNameRange     '1.1.6',
+72 silly addNameRange     '1.1.7',
+72 silly addNameRange     '1.2.0',
+72 silly addNameRange     '1.2.1',
+72 silly addNameRange     '1.2.2',
+72 silly addNameRange     '1.2.3',
+72 silly addNameRange     '1.2.4',
+72 silly addNameRange     '1.3.0',
+72 silly addNameRange     '1.3.1',
+72 silly addNameRange     '1.3.2',
+72 silly addNameRange     '1.3.3',
+72 silly addNameRange     '1.4.0',
+72 silly addNameRange     '1.4.1',
+72 silly addNameRange     '1.4.2',
+72 silly addNameRange     '1.4.3',
+72 silly addNameRange     '1.4.4',
+72 silly addNameRange     '1.5.0',
+72 silly addNameRange     '1.5.1',
+72 silly addNameRange     '1.5.2',
+72 silly addNameRange     '1.6.0',
+72 silly addNameRange     '1.7.0',
+72 silly addNameRange     '1.8.0',
+72 silly addNameRange     '1.8.1',
+72 silly addNameRange     '1.8.2',
+72 silly addNameRange     '1.8.3' ] ]
+73 verbose addNamed [ 'underscore', '1.8.3' ]
+74 verbose addNamed [ '1.8.3', '1.8.3' ]
+75 silly lockFile e5e32fca-underscore-1-8-3 underscore@1.8.3
+76 verbose lock underscore@1.8.3 C:\Users\Иван Бородай\AppData\Roaming\npm-cache\e5e32fca-underscore-1-8-3.lock
+77 silly addNameRange number 2 { name: 'q', range: '>=1.4.0-0 <1.5.0-0', hasData: true }
+78 silly addNameRange versions [ 'q',
+78 silly addNameRange   [ '0.0.0',
+78 silly addNameRange     '0.0.1',
+78 silly addNameRange     '0.0.2',
+78 silly addNameRange     '0.0.3',
+78 silly addNameRange     '0.1.0',
+78 silly addNameRange     '0.1.1',
+78 silly addNameRange     '0.1.2',
+78 silly addNameRange     '0.1.3',
+78 silly addNameRange     '0.1.4',
+78 silly addNameRange     '0.1.5',
+78 silly addNameRange     '0.1.6',
+78 silly addNameRange     '0.1.7',
+78 silly addNameRange     '0.1.8',
+78 silly addNameRange     '0.1.9',
+78 silly addNameRange     '0.2.0-rc1',
+78 silly addNameRange     '0.2.0',
+78 silly addNameRange     '0.2.1',
+78 silly addNameRange     '0.2.2',
+78 silly addNameRange     '0.2.3',
+78 silly addNameRange     '0.2.4',
+78 silly addNameRange     '0.2.5',
+78 silly addNameRange     '0.2.6',
+78 silly addNameRange     '0.2.7',
+78 silly addNameRange     '0.2.8',
+78 silly addNameRange     '0.2.9',
+78 silly addNameRange     '0.3.0',
+78 silly addNameRange     '0.2.10',
+78 silly addNameRange     '0.4.0',
+78 silly addNameRange     '0.4.1',
+78 silly addNameRange     '0.4.2',
+78 silly addNameRange     '0.4.4',
+78 silly addNameRange     '0.5.0',
+78 silly addNameRange     '0.5.1',
+78 silly addNameRange     '0.5.2',
+78 silly addNameRange     '0.5.3',
+78 silly addNameRange     '0.6.0',
+78 silly addNameRange     '0.7.0',
+78 silly addNameRange     '0.7.1',
+78 silly addNameRange     '0.7.2',
+78 silly addNameRange     '0.8.0',
+78 silly addNameRange     '0.8.1',
+78 silly addNameRange     '0.8.2',
+78 silly addNameRange     '0.8.3',
+78 silly addNameRange     '0.8.4',
+78 silly addNameRange     '0.8.5',
+78 silly addNameRange     '0.8.6',
+78 silly addNameRange     '0.8.7',
+78 silly addNameRange     '0.8.8',
+78 silly addNameRange     '0.8.9',
+78 silly addNameRange     '0.8.10',
+78 silly addNameRange     '0.8.11',
+78 silly addNameRange     '0.8.12',
+78 silly addNameRange     '0.9.0',
+78 silly addNameRange     '0.9.1',
+78 silly addNameRange     '0.9.2',
+78 silly addNameRange     '0.9.3',
+78 silly addNameRange     '0.9.4',
+78 silly addNameRange     '0.9.5',
+78 silly addNameRange     '0.9.6',
+78 silly addNameRange     '0.9.7',
+78 silly addNameRange     '1.0.0',
+78 silly addNameRange     '1.0.1',
+78 silly addNameRange     '2.0.0',
+78 silly addNameRange     '2.0.1',
+78 silly addNameRange     '2.0.2',
+78 silly addNameRange     '1.1.0',
+78 silly addNameRange     '1.1.1',
+78 silly addNameRange     '1.1.2',
+78 silly addNameRange     '2.0.3',
+78 silly addNameRange     '1.2.0',
+78 silly addNameRange     '1.2.1',
+78 silly addNameRange     '1.3.0',
+78 silly addNameRange     '1.4.0',
+78 silly addNameRange     '1.4.1' ] ]
+79 verbose addNamed [ 'q', '1.4.1' ]
+80 verbose addNamed [ '1.4.1', '1.4.1' ]
+81 silly lockFile 0ea9f2d2-q-1-4-1 q@1.4.1
+82 verbose lock q@1.4.1 C:\Users\Иван Бородай\AppData\Roaming\npm-cache\0ea9f2d2-q-1-4-1.lock
+83 silly lockFile e5e32fca-underscore-1-8-3 underscore@1.8.3
+84 silly lockFile e5e32fca-underscore-1-8-3 underscore@1.8.3
+85 silly lockFile 0ea9f2d2-q-1-4-1 q@1.4.1
+86 silly lockFile 0ea9f2d2-q-1-4-1 q@1.4.1
+87 silly lockFile 209aca41-underscore-1-8 underscore@~1.8
+88 silly lockFile 209aca41-underscore-1-8 underscore@~1.8
+89 silly lockFile 32725f09-q-1-4 q@~1.4
+90 silly lockFile 32725f09-q-1-4 q@~1.4
+91 http 404 https://registry.npmjs.org/amqp.node
+92 silly registry.get cb [ 404,
+92 silly registry.get   { 'content-type': 'application/json',
+92 silly registry.get     'cache-control': 'max-age=0',
+92 silly registry.get     'content-length': '2',
+92 silly registry.get     'accept-ranges': 'bytes',
+92 silly registry.get     date: 'Wed, 07 Oct 2015 20:53:58 GMT',
+92 silly registry.get     via: '1.1 varnish',
+92 silly registry.get     age: '0',
+92 silly registry.get     connection: 'keep-alive',
+92 silly registry.get     'x-served-by': 'cache-fra1240-FRA',
+92 silly registry.get     'x-cache': 'MISS',
+92 silly registry.get     'x-cache-hits': '0',
+92 silly registry.get     'x-timer': 'S1444251238.612447,VS0,VE110' } ]
+93 silly lockFile 62157cc0-amqp-node-0-2 amqp.node@~0.2
+94 silly lockFile 62157cc0-amqp-node-0-2 amqp.node@~0.2
+95 error 404 Not Found
+95 error 404
+95 error 404 'amqp.node' is not in the npm registry.
+95 error 404 You should bug the author to publish it
+95 error 404 It was specified as a dependency of 'iRabbit'
+95 error 404
+95 error 404 Note that you can also install from a
+95 error 404 tarball, folder, or http url, or git url.
+96 error System Windows_NT 6.2.9200
+97 error command "c:\\nodejs\\node.exe" "c:\\nodejs\\node_modules\\npm\\bin\\npm-cli.js" "install"
+98 error cwd c:\OpenServer\domains\shop-in-box\z_common\iRabbit
+99 error node -v v0.10.33
+100 error npm -v 1.4.28
+101 error code E404
+102 verbose exit [ 1, true ]
