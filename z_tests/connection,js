@@ -1,0 +1,18 @@
+"use strict";
+
+var config = require("./conf.js")
+  , rabbit = require( "../iRabbit" )(config.rabbit)
+  , assert = require( 'assert' );
+
+
+rabbit.connect()
+        .then(function connected1( connection ){
+            console.log('connected 1');
+            rabbit.connect().then(function(connection2){
+                console.log('connected 2');
+                assert.deepEqual( connection, connection2, 'diff connections!');
+                console.log('connections same!');
+
+            });
+            return connection;
+        });
