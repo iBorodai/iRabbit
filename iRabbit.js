@@ -5,8 +5,8 @@ var EventEmitter = require( "events" ).EventEmitter
   , util = require('util')
   , assert = require( 'assert' )
   , _ = require( 'underscore' )
+  // , when = require('./node_modules/amqplib/node_modules/when') // --- just test require sub module - BUT!!! may be should use "when.js" instead of "Q"
   , Q = require('q');
-
 
 function iRabbit( config, hashCode ) {
     assert.equal(typeof (config), 'object',    "config object expected");
@@ -51,12 +51,18 @@ iRabbit.prototype.connect = function() {
             function onConnect( connection ){
                 this.connection = connection;
             }.bind(this)
-        );
+        ) . catch( function( err ){
+            return Q.reject(err);
+        });
     }
     return this._enity[hashCode];
 }
 
 /**
+ * UPDATE:
+ *    > переделано - всегда выдается один канал.
+ *    > Не вижу конфликта, т.к. канал - виртуальное соединение внутри реального ( http://stackoverflow.com/questions/18418936/rabbitmq-and-relationship-between-channel-and-connection )
+ *
  * Создание канала. Само по себе создание каналы смысла не имеет.
  * Канал создается для какой-то очереди или темы по этому метод принимает параметры идентифицирующие сущность для которой создается канал.
  * @param  {string} forEntityType тип сущности [queue|exchange]
@@ -66,22 +72,27 @@ iRabbit.prototype.connect = function() {
  */
 iRabbit.prototype.channel = function( forEntityType, forEntityName, confirmChannel ) {
 
+    if( arguments.length == 1 && typeof(forEntityType) == 'boolean' ){
+        confirmChannel = forEntityType;
+    }
     confirmChannel = ( typeof(confirmChannel) == 'undefined' ) ? false : true ;
 
     return this.connect().then(function connected( connection ){
 
+            // var hashCode = 'channel'+makeHash( (forEntityType.toString())+(forEntityName.toString())+(confirmChannel.toString()) );
+            var hashCode = 'channel'; //Потому что не вижу конфликта в использовании одного канала одновременно для очередей и эксченджей
 
-        var hashCode = 'channel'+makeHash( (forEntityType.toString())+(forEntityName.toString())+(confirmChannel.toString()) );
-        if( typeof(this._enity[hashCode])=='undefined' || !this._enity[hashCode] ){
-            if( confirmChannel ){
-                this._enity[hashCode] = this.connection.createConfirmChannel(channel);
-            } else {
-                this._enity[hashCode] = this.connection.createChannel();
+            if( typeof(this._enity[hashCode])=='undefined' || !this._enity[hashCode] ){
+                if( confirmChannel ){
+                    this._enity[hashCode] = this.connection.createConfirmChannel(channel);
+                } else {
+                    this._enity[hashCode] = this.connection.createChannel();
+                }
             }
-        }
 
-        return this._enity[hashCode];
-    }.bind(this));
+            return this._enity[hashCode];
+        }.bind(this)
+    ) . catch( function( err ){ return Q.reject(err); } );
 }
 
 /*************************
@@ -95,6 +106,8 @@ iRabbit.prototype.channel = function( forEntityType, forEntityName, confirmChann
  * @return {[type]}         promice
  */
 iRabbit.prototype.initQueue = function( name, options ){
+    assert.equal(typeof (name), 'string',    "name string expected");
+
     //apply default options
     var defOptions = {
         'durable':false,
@@ -107,75 +120,91 @@ iRabbit.prototype.initQueue = function( name, options ){
     // console.log(options); process.exit;
 
     return this.channel( 'queue', name ).then( function channelInited( channel ){
-        var hashCode = 'queue' + name;
+            var hashCode = 'queue' + name;
 
-        if( typeof(this._enity[hashCode])!='undefined' ) return this._enity[hashCode];
+            if( typeof(this._enity[hashCode])!='undefined' ) return this._enity[hashCode];
 
-        this._enity[hashCode] = channel.assertQueue( name, options );
+            this._enity[hashCode] = channel.assertQueue( name, options );
 
-        /*this._enity[hashCode].then(function(queue){
-            this._queues[ name ] = new iRabbitQueue( this, channel, queue );
-            console.log('HERE!', this._queues[ name ] );
-        });*/
+            /*this._enity[hashCode].then(function(queue){
+                this._queues[ name ] = new iRabbitQueue( this, channel, queue );
+                console.log('HERE!', this._queues[ name ] );
+            });*/
 
-        return this._enity[hashCode];
-    }.bind(this));
+            return this._enity[hashCode];
+        }.bind(this)
+    ) . catch( function(err){ return Q.reject(err); } );
 }
 
-iRabbit.prototype.subscribeQueue = function( name, options1, oprions2 ){
+iRabbit.prototype.subscribeQueue = function( name, options1, options2 ){
     assert.equal(typeof (name), 'string',    "name string expected");
 
     var locChannel = false,
         queueHash = 'queue'+name;
 
     if( typeof( this._enity[queueHash] )=='undefined' || !this._enity[queueHash] ){
-    // Если очередь еще не инициализирована - ожидаются отдельные параметры для инита и подписи
+        // Если очередь еще не инициализирована - ожидаются отдельные параметры для инита и подписи
 
         var initOptions = typeof(options1)!='undefined' ? options1 : {} ;
-        var subscribeOptions = typeof(options2)!='undefined' ? options1 : {} ;
+        var subscribeOptions = typeof(options2)!='undefined' ? options2 : {} ;
 
-        return this.initQueue( name, initOptions ).then(function( queue ){
-            this.channel('queue', queue.queue).then(function( channel ){
-                return this._consumeQueue(
-                    channel,
-                    queue,
-                    subscribeOptions
-                );
-            }.bind(this) );
-        }.bind(this));
-
+        return this.initQueue( name, initOptions )
+        .then(function( queue ){
+                return this.channel('queue', queue.queue)
+                        .then(function( channel ){
+                            return this._consumeQueue(
+                                channel,
+                                queue,
+                                subscribeOptions
+                            );
+                        }.bind(this) )
+                        .catch( function(err){ return Q.reject(err); } )
+                        .then( function( consume ){
+                            return {
+                                'queue':queue,
+                                'consume':consume
+                            };
+                        });
+        }.bind(this))
+        .catch( function(err){ return Q.reject(err); } );
     } else {
-    // Очередь инициализирована - ожидаются параметры только для подписи
+        // Очередь инициализирована - ожидаются параметры только для подписи
 
         var subscribeOptions = typeof(options1)!='undefined' ? options1 : {} ;
-        return this.channel('queue', queue.queue).then(function( channel ){
-            return this._consumeQueue(
-                channel,
-                this._enity[queueHash],
-                subscribeOptions
-            );
-        }.bind(this));
-
+        return this.channel('queue', queue.queue)
+                .then(function( channel ){
+                    return this._consumeQueue(
+                        channel,
+                        this._enity[queueHash],
+                        subscribeOptions
+                    );
+                }.bind(this))
+                .catch( function(err){ return Q.reject(err); } );
     }
+
+    return Q.reject( new Error('unexpected situation') );
 }
 
 iRabbit.prototype._consumeQueue = function ( channel, queue, options ){
 
-    var queueName = queue.queue;
+    var queueName = queue.queue,
+        eventName = typeof(options.eventName)!='undefined' ? options.eventName : queueName ;
 
     return channel.consume(
         queueName,
         function ConsumeCallback( message ){ // коллбэк ф-я приема сообщений
 
+            // throw new Error('test error');
             var unpackedMessage = this._unpackData( message );
-
             this.emit( 'receive',{
-                'type' : 'queue',
-                'name' : queueName,
+                'type' : ( typeof(options.reseiveType)=='string'? options.reseiveType : 'queue' ),
+                'name' : eventName,
+                'queueName' : queueName,
                 'message' : unpackedMessage ,
                 'messageObj' : message
             });
-            this.emit( queueName+':message', {
+            this.emit( eventName+':message', {
+                'queueName' : queueName,
                 'message' : unpackedMessage ,
                 'messageObj' : message
             });
@@ -199,10 +228,10 @@ iRabbit.prototype.sendQueue = function( name, message , options1, options2 ) {
     // Если очередь еще не инициализирована - ожидаются отдельные параметры для инита и отправки
 
         var initOptions = typeof(options1)!='undefined' ? options1 : {} ;
-        var sendOptions = typeof(options2)!='undefined' ? options1 : {} ;
+        var sendOptions = typeof(options2)!='undefined' ? options2 : {} ;
 
         return this.initQueue( name, initOptions ).then(function( queue ){
-            this.channel('queue', queue.queue).then(function( channel ){
+            return this.channel('queue', queue.queue).then(function( channel ){
                 locChannel = channel;
                 return this._sendQueue(
                     channel,
@@ -210,14 +239,16 @@ iRabbit.prototype.sendQueue = function( name, message , options1, options2 ) {
                     message,
                     sendOptions
                 );
-            }.bind(this) );
-        }.bind(this));
+            }.bind(this) )
+            .catch( function(err){ return Q.reject(err); } );
+        }.bind(this))
+        .catch( function(err){ return Q.reject(err); } );
 
     } else {
     // Очередь инициализирована - ожидаются параметры только для подписи
 
         var sendOptions = typeof(options1)!='undefined' ? options1 : {} ;
-        return this.channel('queue', queue.queue).then(function( channel ){
+        return this.channel('queue', this._enity[queueHash].queue).then(function( channel ){
             locChannel = channel;
 
             return this._sendQueue(
@@ -226,9 +257,12 @@ iRabbit.prototype.sendQueue = function( name, message , options1, options2 ) {
                 message,
                 sendOptions
             );
-        }.bind(this));
+        }.bind(this))
+        .catch( function(err){ return Q.reject(err); } );
 
     }
+
+    return Q.reject( new Error('unexpected situation') );
 }
 
 iRabbit.prototype._sendQueue = function( channel, queue, message, options ){
@@ -239,9 +273,158 @@ iRabbit.prototype._sendQueue = function( channel, queue, message, options ){
     options.contentEncoding = 'UTF8';
 
     var queueName = queue.queue;
-    return channel.sendToQueue(queueName, new Buffer(message), options);
+    return channel.sendToQueue(queueName, message, options);
 }
 
+/*************************
+ *          Exchange topic
+ *************************/
+
+iRabbit.prototype.initTopic = function( name, options ) {
+    assert.equal(typeof (name), 'string',    "name string expected");
+
+    //apply default options
+    var defOptions = {
+        'durable' : true,
+        'internal' : false,
+        'exclusive' : false,
+        'autoDelete' : true
+    };
+
+    if( typeof(options) == 'undefined' ) options = defOptions;
+    else options =  _.extend(defOptions, options);
+
+    return this.channel( 'exchange', name ).then( function channelInited( channel ){
+        var hashCode = 'exchange' + name;
+
+        if( typeof(this._enity[hashCode])!='undefined' ) return this._enity[hashCode];
+
+        this._enity[hashCode] = channel.assertExchange( name, 'topic' , options );
+
+        return this._enity[hashCode];
+    }.bind(this))
+    .catch( function(err){ return Q.reject(err); } );
+}
+
+iRabbit.prototype.sendTopic = function( exchangeName, routingKey, message,  options1, options2 ) {
+    assert.equal(typeof (exchangeName), 'string',    "exchangeName string expected");
+    assert.equal(typeof (routingKey), 'string',    "routingKey string expected");
+    assert.notEqual(typeof (message), 'undefined' , "message expected" );
+    if(typeof(options1)=='undefined') options1={};
+    if(typeof(options2)=='undefined') options2={};
+
+    var locChannel = false,
+        exchangeHash = 'exchange' + exchangeName;
+
+    if( typeof( this._enity[ exchangeHash ] )=='undefined' || !this._enity[ exchangeHash ] ){
+        //обменник еще не создан
+        var initOptions = typeof(options1)!='undefined' ? options1 : {} ;
+        var sendOptions = typeof(options2)!='undefined' ? options2 : {} ;
+
+        return this.initTopic( exchangeName, initOptions ).then(function( exchange ){
+            return this.channel( 'exchange', exchange.exchange ).then(function( channel ){
+                locChannel = channel;
+                return this._sendExchange(
+                    channel,
+                    exchange,
+                    message,
+                    routingKey,
+                    sendOptions
+                );
+            }.bind(this) )
+            .catch( function(err){ return Q.reject(err); } );
+        }.bind(this))
+        .catch( function(err){ return Q.reject(err); } );
+
+    } else {
+        //обменник уже создан
+        var sendOptions = typeof(options1)!='undefined' ? options1 : {} ;
+
+        return this.channel( 'exchange', this._enity[ exchangeHash ].exchange ).then(function( channel ){
+            locChannel = channel;
+            return this._sendExchange(
+                channel,
+                this._enity[ exchangeHash ],
+                message,
+                routingKey,
+                sendOptions
+            );
+        }.bind(this) )
+        .catch( function(err){ return Q.reject(err); } );
+    }
+
+    return Q.reject( new Error('unexpected situation') );
+}
+
+iRabbit.prototype._sendExchange = function( channel, exchange, message, routingKey, options ){
+
+    var packed = this._packData(message);
+
+    options = typeof(options)=='object'? options : {};
+    options.contentType = packed.mime;
+    options.contentEncoding = 'UTF8';
+
+    return channel.publish(
+        exchange.exchange,
+        routingKey,
+        packed.data,
+        options
+    );
+}
+
+iRabbit.prototype.subscribeTopic = function( name, routingKey, options1, options2 ){
+    assert.equal(typeof (name), 'string',    "name string expected");
+    assert.equal(typeof (routingKey), 'string',    "routingKey string expected");
+    // {exclusive: true, durable:true}
+    var locChannel = false,
+        locExchange = false,
+        exchangeHash = 'exchange' + name;
+
+    if( typeof( this._enity[exchangeHash] )=='undefined' || !this._enity[exchangeHash] ){
+        //exchange еще не создана
+        var exchangeOptions = typeof(options1)!='undefined' ? options1 : {} ;
+        var queueOptions = typeof(options2)!='undefined' ? options2 : {} ;
+
+        return this.initTopic( name, exchangeOptions ).then(function( exchange ){
+            locExchange = exchange;
+            return this._createBindSubscribeQueue( exchange, queueOptions, routingKey );
+        }.bind(this))
+        .catch(function( err ){
+            return Q.reject( err );
+        });
+
+    } else {
+        //exchange есть
+        var queueOptions = typeof(options1)!='undefined' ? options1 : {} ;
+        return this._createBindSubscribeQueue(this._enity[exchangeHash], queueOptions, routingKey );
+    }
+
+    return Q.reject( new Error('unexpected situation') );
+}
+
+iRabbit.prototype._createBindSubscribeQueue = function( exchange, options, routingKey ){
+
+    var queueName = '';
+    if( typeof( options ) != 'undefined' && typeof( options.name ) != 'undefined' ){
+        queueName = options.name;
+        delete options.name;
+    } else
+        options.eventName = exchange.exchange;
+    // console.log( options );
+    return this.subscribeQueue( queueName, options, {reseiveType:'topic'} )
+    .then(function( result ){
+        // get channel
+        return this.channel('exchange'+exchange.exchange).then(function(channel){
+            console.log(result.queue.queue, exchange.exchange, routingKey );
+            return channel.bindQueue( result.queue.queue, exchange.exchange, routingKey );
+        }.bind(this)).catch(function(err){ return Q.reject(err) });
+    }.bind(this))
+    .catch(function(err){ return Q.reject(err) });
+}
+
+/**
+ * Common methods-helpers
+ */
 iRabbit.prototype._packData = function( object ){
     var res = {
         mime : 'text/plain',
@@ -265,6 +448,8 @@ iRabbit.prototype._packData = function( object ){
             res.data = object.toString();
         }
     }
+
+    res.data = new Buffer( res.data );
     return res;
 }
 
@@ -287,201 +472,6 @@ iRabbit.prototype._unpackData = function( messageObj ){
 
     return result;
 }
-
-/**
- * TOPIC
- */
-
-/**
- * inits topic exchange
- * @param  object conf config object for topic only
- * @return promise witch resolves when exchange ready
- * @emit topic.ready event with <exchange> param,
- *       topic.error event with <error> param
- */
-iRabbit.prototype.initTopic = function( conf ) {
-    var config = ( typeof(this._config.topic)=='object' ) ? _.extend(this._config.topic, conf) : conf;
-
-    assert.equal(typeof (config.exchangeName), 'string',    "config.exchangeName string expected");
-    //assert.equal(typeof (config.routingKey), 'string',    "config.routingKey string expected");
-
-    var deferred = Q.defer();
-
-    //if already inited
-    if( this.topics[ config.exchangeName ] ){
-        deferred.resolve( this.topics[ config.exchangeName ] );
-        return deferred.promise;
-    }
-
-    //init topicExchange as usual
-    this.connect().then(
-        function onConnect(){
-            this.topic.exchange = this.connection.exchange(
-                config.exchangeName,
-                {
-                    type:'topic',
-                    confirm:true
-                },
-                function exchangeOpenCallback(exchange){
-                    if(!exchange){
-                        deferred.reject( err );
-                        this.emit('topic.error', err );
-                    }else{
-                        this.topics[ this.topic.exchange.name ] = this.topic.exchange;
-                        deferred.resolve( this.topic.exchange );
-                        this.emit('topic.ready', this.topic.exchange );
-                    }
-                }.bind(this)
-            );
-
-            /*
-            //This interface is considered deprecated. https://github.com/postwait/node-amqp#exchangeonopen-callback
-            this.topic.exchange.on('error', function onError(err){
-                deferred.reject( err );
-                this.emit('topic.error', err );
-            }.bind(this));
-
-            this.topic.exchange.on('open', function onOpen(){
-                this.topics[ this.topic.exchange.name ] = this.topic.exchange;
-                deferred.resolve( this.topic.exchange );
-                this.emit('topic.ready', this.topic.exchange );
-            }.bind(this));*/
-
-        }.bind(this)
-    );
-
-    return deferred.promise;
-}
-
-iRabbit.prototype.topicPush = function( message, publishKey, options ) {
-    assert.notEqual(typeof (message), 'undefined' , "message expected" );
-    assert.equal(typeof (publishKey), 'string', "publishKey string expected");
-
-    var deferred = Q.defer();
-
-    this.initTopic().then(
-        function onTopicInited( exchange ){
-
-            var opts=(typeof(options)!='undefined') ? options : {};
-            //Before publish - changes in message, publishKey, options
-            if( typeof(options.beforePublish)=='function' ){
-
-                var tObj={ message:message, publishKey: publishKey, options: options }
-
-                var resObj = options.beforePublish( tObj );
-                if( typeof(resObj)=='object' )  tObj = _.extend(tObj, resObj);
-
-                message = tObj.message; publishKey = tObj.publishKey; options = tObj.options;
-
-                delete options.beforePublish;
-                //delete tObj;
-            }
-
-            exchange.publish(
-                publishKey,
-                message,
-                opts,
-                function onPub(prm){
-                    this.emit('topic.push', message, publishKey);
-                    deferred.resolve({
-                        message:message,
-                        publishKey:publishKey
-                    });
-                }.bind(this)
-            );
-
-        }.bind(this)
-    ).catch(function(err){
-        console.log(err);
-    });
-
-    return deferred.promise;
-}
-
-iRabbit.prototype.topicSubscribe = function( conf ){
-
-    var config = ( typeof(this._config.topic)=='object' ) ? _.extend(this._config.topic, conf) : conf;
-
-    assert.equal(typeof (config.routingKey), 'string', "config.routingKey string expected '"+config.routingKey+"'");
-
-    var deferred = Q.defer();
-    this.initTopic( conf ).then(
-        function onTopicInited(){
-
-            var isExclusive = (typeof(this._config.topic.queueName)=='undefined');
-
-            this.connection.queue(
-                isExclusive ? '' : this._config.topic.queueName,
-                {
-                    exclusive : isExclusive
-                },
-                function( q ){
-                    //normalize as array
-                    if(typeof(config.routingKey)=='string') config.routingKey = [config.routingKey];
-                    //subscribe all detected keys
-                    for( var i in config.routingKey ){
-                        q.bind(
-                            this._config.topic.exchangeName,
-                            config.routingKey[i]
-                            /*, function bindCallback(queue){
-                                //detect acknowledge params
-                                var options = {}
-                                if( typeof(this._config.topic.ack)!='undefined' ) options.ack = true;
-                                if( typeof(this._config.topic.prefetchCount)!='undefined' ) options.prefetchCount= this._config.topic.prefetchCount;
-
-                                q.subscribe(
-                                    options,
-                                    function( message, headers, deliveryInfo, messageObj ){
-                                        this.emit('topic.pull', message, headers, deliveryInfo, messageObj );
-                                    }.bind(this)
-                                ).once('error', function(error) {
-                                    console.log(error);
-                                }).once('basicQosOk', function() {
-                                    //it is supposed it is emmited when subscription is ready, but...
-                                    //it seems is not working :(
-                                }).addCallback(function subscribed(ok){
-                                    //logger.info("Great, subscription done it");
-                                    deferred.resolve( q );
-                                });
-                            }.bind(this)*/
-                        );
-                    }
-                    //q.on('error',function(e){ console.log('[x]queueError:',e); });
-                    q.on('queueBindOk',function(){
-                        //detect acknowledge params
-                        var options = {}
-                        if( typeof(this._config.topic.ack)!='undefined' ) options.ack = true;
-                        if( typeof(this._config.topic.prefetchCount)!='undefined' ) options.prefetchCount= this._config.topic.prefetchCount;
-
-                        q.subscribe(
-                            options,
-                            function( message, headers, deliveryInfo, messageObj ){
-                                this.emit('topic.pull', message, headers, deliveryInfo, messageObj );
-                            }.bind(this)
-                        ).once('error', function(error) {
-                            console.log(error);
-                        }).once('basicQosOk', function() {
-                            //it is supposed it is emmited when subscription is ready, but...
-                            //it seems is not working :(
-                        }).addCallback(function subscribed(ok){
-                            //logger.info("Great, subscription done it");
-                            deferred.resolve( {
-                                queue:q,
-                                routingKey:config.routingKey
-                            } );
-                        });
-
-                    }.bind(this));
-                    //onConsumerCancel
-                    //q.on('basicCancel',function(){ this.emit('') }.bind(this));
-                    //onSubscribed
-                }.bind(this)
-            )
-        }.bind(this)
-    );
-    return deferred.promise;
-}
-
 
 /**
  * Вспомогательная ф-я создания хеш кода из объекта

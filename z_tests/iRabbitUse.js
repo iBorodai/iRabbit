@@ -8,18 +8,20 @@ var conf    = require( './conf.js' ),
 // iRabbit.connect();
 // iRabbit.initQueue('testQueue');
 
-// iRabbit.on('receive',function(message){
-//     console.log( 'iRabbit receive event: ', message.type, message.queue, message.message );
-// });
-iRabbit.on('testQueue:message',function(message){
+
+/*iRabbit.on('testQueue:message',function(message){
     console.log( 'testQueue:message event: ', message.message );
 });
-iRabbit.subscribeQueue('testQueue')
-.then(function( queue ){
-    // queue.on('receive',function(){
-    //     console.log( 'event message received: ', message );
-    // });
-})
-.catch( function(err){
+iRabbit.subscribeQueue('testQueue').catch( function( err ){
+    console.log('THE_ERROR', err.stack);
+});*/
+
+iRabbit.on('receive',function(message){
+    console.log( 'iRabbit receive event: ', message );
+});
+iRabbit.on('testExchange:message',function(message){
+    console.log( 'testExchange:message event: ', message );
+});
+iRabbit.subscribeTopic('testExchange', 'test.*.*').catch( function( err ){
     console.log('THE_ERROR', err.stack);
 });
