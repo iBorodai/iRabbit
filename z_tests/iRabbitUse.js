@@ -1,6 +1,7 @@
 "use strict";
 
 var conf    = require( './conf.js' ),
+    Q    = require( 'q' ),
     iRabbit = require( '../iRabbit.js' )( conf.rabbit );
 
 // iRabbit.on('error',function(error){});
@@ -8,20 +9,47 @@ var conf    = require( './conf.js' ),
 // iRabbit.connect();
 // iRabbit.initQueue('testQueue');
 
-
-/*iRabbit.on('testQueue:message',function(message){
+// subscribe queue testQueue
+/*
+// iRabbit.on('receive',console.log);
+iRabbit.on('testQueue:message',function(message){
     console.log( 'testQueue:message event: ', message.message );
 });
 iRabbit.subscribeQueue('testQueue').catch( function( err ){
     console.log('THE_ERROR', err.stack);
-});*/
-
-iRabbit.on('receive',function(message){
-    console.log( 'iRabbit receive event: ', message );
 });
-iRabbit.on('testExchange:message',function(message){
-    console.log( 'testExchange:message event: ', message );
+*/
+
+// subscribe topic
+/*
+// iRabbit.on('receive',console.log);
+iRabbit.on('testExchange:message',function(incMsg){
+    console.log( 'testExchange:message event: ', incMsg.message );
 });
 iRabbit.subscribeTopic('testExchange', 'test.*.*').catch( function( err ){
     console.log('THE_ERROR', err.stack);
 });
+*/
+
+// RPC queue server
+iRabbit.rpcQueueServer(
+    'rpcQueueServerIncQ',
+    function( incMsg ){
+        // return 'responseMessage for ' + incMsg.message;
+        var deferred =  Q.defer();
+
+        var procTime = parseInt(Math.random()*10000);
+        console.log('process time: ',procTime);
+
+        setTimeout( function(){
+            console.log('send Resp');
+            deferred.resolve( 'responseMessage for ' + incMsg.message );
+        }, procTime );
+
+        return deferred.promise;
+    }
+).catch( function(err){
+    console.log('THE_ERROR', err);
+}).done( function(result){
+    // console.log('DONE', result);
+} );

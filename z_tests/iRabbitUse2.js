@@ -11,13 +11,18 @@ var conf    = require( './conf.js' ),
 
         console.log('type message:');
         process.stdin.on('data', function (text) {
-            text = util.inspect(text).split('\\')[0].substring(1);
+            // text = util.inspect(text).split('\\')[0].substring(1);
             if (text === 'quit') {
                 done();
             } else {
 
-                var exchange = 'testExchange',
-                    message = text,
+                //send to queue testQueue
+                // iRabbit.sendQueue('testQueue', text).then( console.log ).catch( console.log );
+                // iRabbit.sendQueue('rpcQueueServerIncQ', text).then( console.log ).catch( console.log );
+
+                //send to exchange
+                /*var exchange = 'testExchange',
+                    message = { messageText:text, time:new Date() },
                     routingKey = 'test.message.aaa';
 
                 console.log('sending message', message, ' to ', exchange, ' with ', routingKey);
@@ -28,8 +33,36 @@ var conf    = require( './conf.js' ),
                 })
                 .catch( function(err){
                     console.log('THE_ERROR', err.stack);
-                });
+                });*/
 
+                //send to queue - rpcQueueServerIncQ
+                /*iRabbit.sendQueue( 'rpcQueueServerIncQ', text )
+                .then(function( result ){
+                    console.log( 'send result:', result );
+                })
+                .catch( function(err){
+                    console.log('THE_ERROR', err.stack);
+                });*/
+
+                // PRC client queue
+                iRabbit.rpcQueueClient(
+                    'rpcQueueServerIncQ'
+                    /*,function(responce){
+                        console.log('responce',responce);
+                    }*/
+                ).then(function( client ){
+
+                    client.send( text )
+                    .then(function(responce){
+                        console.log('responce from Promice',responce.message);
+                    })
+                    .catch(function(err){
+                        console.log('ERR_SEND',err);
+                    });
+
+                }).catch(function(err){
+                    console.log('ERR',err);
+                });
             }
         });
 
