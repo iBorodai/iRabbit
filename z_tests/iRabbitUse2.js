@@ -4,6 +4,9 @@ var conf    = require( './conf.js' ),
     iRabbit = require( '../iRabbit.js' )( conf.rabbit ),
     util = require('util');
 
+    /*iRabbit.on('receive',function(incMsg){
+        console.log('Common event "receive":',incMsg.message);
+    });*/
 
         // для ввода текста из консоли
         process.stdin.resume();
@@ -35,34 +38,36 @@ var conf    = require( './conf.js' ),
                     console.log('THE_ERROR', err.stack);
                 });*/
 
-                //send to queue - rpcQueueServerIncQ
-                /*iRabbit.sendQueue( 'rpcQueueServerIncQ', text )
-                .then(function( result ){
-                    console.log( 'send result:', result );
-                })
-                .catch( function(err){
-                    console.log('THE_ERROR', err.stack);
-                });*/
 
                 // PRC client queue
-                iRabbit.rpcQueueClient(
+                /*iRabbit.rpcQueueClient(
                     'rpcQueueServerIncQ'
-                    /*,function(responce){
-                        console.log('responce',responce);
-                    }*/
                 ).then(function( client ){
 
                     client.send( text )
                     .then(function(responce){
                         console.log('responce from Promice',responce.message);
                     })
-                    .catch(function(err){
-                        console.log('ERR_SEND',err);
-                    });
+                    .catch(function(err){ console.log('ERR_SEND',err); })
+                    ;
 
-                }).catch(function(err){
-                    console.log('ERR',err);
-                });
+                })
+                .catch(function(err){ console.log('ERR',err.stack); }) ;*/
+
+                // PRC client topic
+                iRabbit.rpcTopicClient(
+                    'rpcTopicExchange'
+                    /*, function( resp ){
+                        console.log('responce', resp);
+                    }*/
+                ).then(function( client ){
+                    client.send( 'some.routing.key', text )
+                    .then(function(responce){
+                        console.log('responce from Promice',responce.message);
+                    })
+                    .catch(function(err){ console.log('ERR_SEND',err); });
+                })
+                .catch(function(err){ console.log('ERR',err.stack); });
             }
         });
 
