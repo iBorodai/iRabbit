@@ -156,15 +156,16 @@ iRabbit.prototype.subscribeQueue = function( name, options1, options2 ){
         var subscribeOptions = typeof(options2)!='undefined' ? options2 : {} ;
 
         return this.initQueue( name, initOptions ).then(function( queue ){
-                return this._consumeQueue( queue, subscribeOptions );
+            return this._consumeQueue( queue, subscribeOptions );
         }.bind(this))
         .catch( function(err){ return Q.reject(err); } );
     } else {
         // Очередь инициализирована - ожидаются параметры только для подписи
 
         var subscribeOptions = typeof(options1)!='undefined' ? options1 : {} ;
+
         return this._enity[queueHash].then(function(queue){
-            return this._consumeQueue( queue, subscribeOptions );
+            return this._consumeQueue( queue, subscribeOptions);
         }.bind(this))
         .catch( function(err){ return Q.reject(err); } );
     }
@@ -196,13 +197,22 @@ iRabbit.prototype._consumeQueue = function ( queue, options ){
                     'name' : eventName,
                     'queueName' : queueName,
                     'message' : unpackedMessage ,
-                    'messageObj' : message
+                    'messageObj' : message,
+                    'channel' : channel
                 });
                 this.emit( eventName+':message', {
                     'queueName' : queueName,
                     'message' : unpackedMessage ,
-                    'messageObj' : message
+                    'messageObj' : message,
+                    'channel' : channel
                 });
+
+                if(
+                    ( typeof(options.noAck)=='undefined' || !options.noAck  ) &&
+                    ( typeof(options.manualAck) == 'undefined' || !options.manualAck )
+                ){
+                    channel.ack( message );
+                }
 
             }.bind(this),
             options
@@ -375,7 +385,7 @@ iRabbit.prototype._sendExchange = function( channel, exchange, message, routingK
     );
 }
 
-iRabbit.prototype.subscribeTopic = function( name, routingKey, options1, options2 ){
+iRabbit.prototype.subscribeTopic = function( name, routingKey, options1, options2, options3 ){
     assert.equal(typeof (name), 'string',    "name string expected");
     assert.equal(typeof (routingKey), 'string',    "routingKey string expected");
     // {exclusive: true, durable:true}
@@ -387,10 +397,11 @@ iRabbit.prototype.subscribeTopic = function( name, routingKey, options1, options
         //exchange еще не создана
         var exchangeOptions = typeof(options1)!='undefined' ? options1 : {} ;
         var queueOptions = typeof(options2)!='undefined' ? options2 : {} ;
+        var queueSubscribeOptions = typeof(options3)!='undefined' ? options3 : {} ;
 
         return this.initTopic( name, exchangeOptions ).then(function( exchange ){
             locExchange = exchange;
-            return this._createBindSubscribeQueue( exchange, queueOptions, routingKey );
+            return this._createBindSubscribeQueue( exchange, routingKey, queueOptions );
         }.bind(this))
         .catch(function( err ){
             return Q.reject( err );
@@ -399,23 +410,26 @@ iRabbit.prototype.subscribeTopic = function( name, routingKey, options1, options
     } else {
         //exchange есть
         var queueOptions = typeof(options1)!='undefined' ? options1 : {} ;
+        var queueSubscribeOptions = typeof(options2)!='undefined' ? options2 : {} ;
 
         return this._enity[exchangeHash].then( function(exchange){
-            return this._createBindSubscribeQueue( exchange , queueOptions, routingKey );
+            return this._createBindSubscribeQueue( exchange , routingKey , queueOptions );
         }.bind(this) )
     }
 
     return Q.reject( new Error('unexpected situation') );
 }
 
-iRabbit.prototype._createBindSubscribeQueue = function( exchange, options, routingKey ){
+iRabbit.prototype._createBindSubscribeQueue = function( exchange, routingKey, options, options2 ){
 
     var queueName = ''
-      , options2 = {reseiveType:'topic'}
+      // , options2 = _.extend( typeof(options2)!='undefined'?options2:{} , {reseiveType:'topic'})
+      , options2 = typeof(options2)!='undefined' ? options2 : {}
       , locQueue = false
       , locQueueConsume = false
       , locQueueSubscribe = false
       ;
+    options2.reseiveType = 'topic';
 
     if( typeof( options ) != 'undefined' && typeof( options.name ) != 'undefined' ){
         queueName = options.name;
@@ -520,15 +534,17 @@ iRabbit.prototype.rpcQueueClient = function( serverQueueName, responceFunc, serv
 /**
  * RPC topic
  */
-iRabbit.prototype.rpcTopicServer = function( exchangeName, routingKey, eventFunc, topicInitOptions, queueResponseOptions ){
+iRabbit.prototype.rpcTopicServer = function( exchangeName, routingKey, eventFunc, topicInitOptions, queueInitOptions, queueConsumeOptions, queueResponseOptions ){
     assert.equal(typeof (exchangeName), 'string',    "exchangeName string expected");
     assert.equal(typeof (routingKey), 'string',    "routingKey string expected");
     assert.equal(typeof (eventFunc), 'function',    "eventFunc function expected");
 
     topicInitOptions = (typeof topicInitOptions != 'undefined') ? topicInitOptions : {};
+    queueInitOptions = (typeof queueInitOptions != 'undefined') ? queueInitOptions : {};
+    queueConsumeOptions = (typeof queueConsumeOptions != 'undefined') ? queueConsumeOptions : {};
     queueResponseOptions = (typeof queueResponseOptions != 'undefined') ? queueResponseOptions : {};
 
-    return this.subscribeTopic( exchangeName, routingKey, topicInitOptions )
+    return this.subscribeTopic( exchangeName, routingKey, topicInitOptions, queueInitOptions, queueConsumeOptions )
     .then(function( result ){
         // add event listener for message
 

@@ -1,10 +1,10 @@
 "use strict";
 
 var scheme = [
-    callback: {type:'function', position:'last', def:function(){} },
-    error: {type:'Error', position:'first'},
-    optionsFrom: {}
-    optionsTo: {}
+      { name:'optionsFrom'  }
+    , { name:'callback', type:'function', position:'last', def:function(){} }
+    , { name:'error', type:'Error', position:'first'}
+    , { name:'optionsTo' }
 ];
 /**
  * {
@@ -16,28 +16,36 @@ var scheme = [
  * @return {[type]}         [description]
  */
 function populateArgs( argsPrm, scheme ){
-    scheme.sort(function (a, b){
+    scheme.sort( sortScheme );
+}
+
+var scheme1 = scheme.sort( sortScheme );
+console.log( scheme1 );
+
+function sortScheme(a, b){
+        // console.log(a.position, b.position);
         // a меньше, чем b по некоторому критерию
         if(
-            (typeof(a.position != 'undefined') && typeof(a.position == 'undefined')) ||
-            (
-                typeof(a.position)!='undefined' && a.position=='first' &&
-                ( typeof(b.position)=='undefined' || b.position!='first' )
-            )
+            ( typeof(a.position != 'undefined') && typeof(b.position == 'undefined') )
+            /*|| (
+                typeof(a.position)!='undefined' && a.position=='first' && ( typeof(b.position)=='undefined' || b.position!='first' )
+            )*/
         ){
             return -1; // Или любое число, меньшее нуля
         }
 
         // a больше, чем b по некоторому критерию
         if(
-            typeof(a.position == 'undefined') && typeof(a.position != 'undefined')
+            typeof(a.position == 'undefined') && typeof(b.position != 'undefined')
+            /*|| (
+                typeof(b.position)!='undefined' && b.position=='first' && ( typeof(a.position)=='undefined' || a.position!='first' )
+            )*/
         ){
             return 1;  // Или любое число, большее нуля
         }
         // в случае а = b вернуть 0
         return 0;
-    });
-}
+    }
 
 function example( err, optionalA, optionalB, callback ) {
 

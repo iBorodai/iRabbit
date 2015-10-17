@@ -40,7 +40,7 @@ var conf    = require( './conf.js' ),
 
 
                 // PRC client queue
-                /*iRabbit.rpcQueueClient(
+                iRabbit.rpcQueueClient(
                     'rpcQueueServerIncQ'
                 ).then(function( client ){
 
@@ -52,14 +52,12 @@ var conf    = require( './conf.js' ),
                     ;
 
                 })
-                .catch(function(err){ console.log('ERR',err.stack); }) ;*/
+                .catch(function(err){ console.log('ERR',err.stack); }) ;
 
                 // PRC client topic
-                iRabbit.rpcTopicClient(
+                /*iRabbit.rpcTopicClient(
                     'rpcTopicExchange'
-                    /*, function( resp ){
-                        console.log('responce', resp);
-                    }*/
+                    // , function( resp ){ console.log('responce', resp); }
                 ).then(function( client ){
                     client.send( 'some.routing.key', text )
                     .then(function(responce){
@@ -67,7 +65,7 @@ var conf    = require( './conf.js' ),
                     })
                     .catch(function(err){ console.log('ERR_SEND',err); });
                 })
-                .catch(function(err){ console.log('ERR',err.stack); });
+                .catch(function(err){ console.log('ERR',err.stack); });*/
             }
         });
 

@@ -32,8 +32,8 @@ iRabbit.subscribeTopic('testExchange', 'test.*.*')
 });*/
 
 
-// RPC queue server
-/*iRabbit.rpcQueueServer(
+// RPC queue server function( queueName, eventFunc, queueInitOptions, queueConsumeOptions, queueResponseOptions )
+iRabbit.rpcQueueServer(
     'rpcQueueServerIncQ',
     function( incMsg ){
         // return 'responseMessage for ' + incMsg.message;
@@ -45,18 +45,21 @@ iRabbit.subscribeTopic('testExchange', 'test.*.*')
         setTimeout( function(){
             console.log('send Resp');
             deferred.resolve( 'responseMessage for ' + incMsg.message );
+            incMsg.channel.ack( incMsg.messageObj );
         }, procTime );
 
         return deferred.promise;
+    }, null, {
+        manualAck:true
     }
 ).catch( function(err){
     console.log('THE_ERROR', err);
 }).done( function(result){
     // console.log('DONE', result);
-} );*/
+} );
 
 // PRC topic server
-iRabbit.rpcTopicServer(
+/*iRabbit.rpcTopicServer(
     'rpcTopicExchange',
     '#',
     function( incMsg ){
@@ -77,4 +80,4 @@ iRabbit.rpcTopicServer(
     console.log('THE_ERROR', err);
 }).done( function(result){
     // console.log('DONE', result);
-} );
+} );*/
