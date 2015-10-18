@@ -21,7 +21,6 @@ var conf    = require( './conf.js' ),
 
                 //send to queue testQueue
                 // iRabbit.sendQueue('testQueue', text).then( console.log ).catch( console.log );
-                // iRabbit.sendQueue('rpcQueueServerIncQ', text).then( console.log ).catch( console.log );
 
                 //send to exchange
                 /*var exchange = 'testExchange',
