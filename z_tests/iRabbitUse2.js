@@ -70,7 +70,7 @@ var conf    = require( './conf.js' ),
         // });
 
 
-                iRabbit.rpcQueueClient(
+                /*iRabbit.rpcQueueClient(
                     'rpcQueueServerIncQ'
                 ).then(function( client ){
 
@@ -91,6 +91,31 @@ var conf    = require( './conf.js' ),
                         console.log('responce from Promice',responce.message);
                     })
                     .catch(function(err){ console.log('ERR_SEND',err); });
+
+                })
+                .catch(function(err){ console.log('ERR',err.stack); });*/
+
+                iRabbit.rpcTopicClient(
+                    'rpcTopicExchange'
+                ).then(function( client ){
+
+                    client.send( 'one', 'Message1' )
+                    .then(function(responce){
+                        console.log('responce from Promice',responce.message);
+                    })
+                    .catch(function(err){ console.log('ERR_SEND',err.stack); });
+
+                    client.send( 'one.two', 'Message2' )
+                    .then(function(responce){
+                        console.log('responce from Promice',responce.message);
+                    })
+                    .catch(function(err){ console.log('ERR_SEND',err); });
+
+                    client.send( 'one.two.three', 'Message3' )
+                    .then(function(responce){
+                        console.log('responce from Promice',responce.message);
+                    })
+                    .catch(function(err){ console.log('ERR_SEND',err.stack); });
 
                 })
                 .catch(function(err){ console.log('ERR',err.stack); });

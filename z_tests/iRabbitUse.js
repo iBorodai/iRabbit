@@ -32,36 +32,37 @@ iRabbit.subscribeTopic('testExchange', 'test.*.*')
 });*/
 
 // RPC queue server function( queueName, eventFunc, queueInitOptions, queueConsumeOptions, queueResponseOptions )
-iRabbit.rpcQueueServer(
+/*iRabbit.rpcQueueServer(
     'rpcQueueServerIncQ',
     function( incMsg ){
-        // return 'responseMessage for ' + incMsg.message;
-        var deferred =  Q.defer();
+        return 'responseMessage for ' + incMsg.message;
 
-        var procTime = parseInt(Math.random()*10000);
-        console.log('process time: ',procTime);
+        // var deferred =  Q.defer();
 
-        setTimeout( function(){
-            console.log('send Resp');
-            deferred.resolve( 'responseMessage for ' + incMsg.message );
-        }, procTime );
+        // var procTime = parseInt(Math.random()*10000);
+        // console.log('process time: ',procTime);
 
-        return deferred.promise;
+        // setTimeout( function(){
+        //     console.log('send Resp');
+        //     deferred.resolve( 'responseMessage for ' + incMsg.message );
+        // }, procTime );
+
+        // return deferred.promise;
     }
     // , null, { manualAck:true }
 ).catch( function(err){
     console.log('THE_ERROR', err);
 }).done( function(result){
     // console.log('DONE', result);
-} );
+} );*/
 
 // PRC topic server
-/*iRabbit.rpcTopicServer(
+iRabbit.rpcTopicServer(
     'rpcTopicExchange',
     '#',
     function( incMsg ){
-        // return 'responseMessage for ' + incMsg.message;
-        var deferred =  Q.defer();
+        return 'responseMessage for ' + incMsg.message;
+        /*var deferred =  Q.defer();
 
         var procTime = parseInt(Math.random()*10000);
         console.log('process time: ',procTime);
@@ -71,10 +72,10 @@ iRabbit.rpcQueueServer(
             deferred.resolve( 'responseMessage for ' + incMsg.message );
         }, procTime );
 
-        return deferred.promise;
+        return deferred.promise;*/
     }
 ).catch( function(err){
     console.log('THE_ERROR', err);
 }).done( function(result){
     // console.log('DONE', result);
-} );*/
+} );
