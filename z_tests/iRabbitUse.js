@@ -10,15 +10,15 @@ var conf    = require( './conf.js' ),
 // iRabbit.initQueue('testQueue');
 
 // subscribe queue testQueue
-/*
+
 // iRabbit.on('receive',console.log);
-iRabbit.on('testQueue:message',function(message){
+/*iRabbit.on('testQueue:message',function(message){
     console.log( 'testQueue:message event: ', message.message );
 });
 iRabbit.subscribeQueue('testQueue').catch( function( err ){
     console.log('THE_ERROR', err.stack);
-});
-*/
+});*/
+
 
 // subscribe topic
 
@@ -30,7 +30,6 @@ iRabbit.subscribeTopic('testExchange', 'test.*.*')
 .catch( function( err ){
     console.log('THE_ERROR', err.stack);
 });*/
-
 
 // RPC queue server function( queueName, eventFunc, queueInitOptions, queueConsumeOptions, queueResponseOptions )
 iRabbit.rpcQueueServer(
@@ -45,13 +44,11 @@ iRabbit.rpcQueueServer(
         setTimeout( function(){
             console.log('send Resp');
             deferred.resolve( 'responseMessage for ' + incMsg.message );
-            incMsg.channel.ack( incMsg.messageObj );
         }, procTime );
 
         return deferred.promise;
-    }, null, {
-        manualAck:true
     }
+    // , null, { manualAck:true }
 ).catch( function(err){
     console.log('THE_ERROR', err);
 }).done( function(result){
@@ -70,7 +67,7 @@ iRabbit.rpcQueueServer(
         console.log('process time: ',procTime);
 
         setTimeout( function(){
-            console.log('send Resp');
+            console.log('send Resp', incMsg.messageObj.properties.correlationId);
             deferred.resolve( 'responseMessage for ' + incMsg.message );
         }, procTime );
 
