@@ -40,7 +40,7 @@ iRabbit.rpcQueueServer(
         var deferred =  Q.defer();
 
         var procTime = parseInt(Math.random()*10000);
-        console.log('process time: ',procTime);
+        console.log('process time: ',procTime, 'msg:', incMsg.message);
 
         setTimeout( function(){
             console.log('send Resp');

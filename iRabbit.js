@@ -15,9 +15,9 @@ function iRabbit( config, hashCode ) {
 
     EventEmitter.call(this);
     this._config = config;
-    this._hashCode = hashCode;
-    this._connectionP = false;
     this._enity = {};
+    // this._hashCode = hashCode;
+    // this._connectionP = false;
     // this._queues = {};
 
     this.amqp = amqp;
@@ -143,27 +143,24 @@ iRabbit.prototype.initQueue = function( name, options ){
  * @param  {object} options2 if queue exists - not expected, otherwise - consume options
  * @return {promise}         returns promise that resolves as object with "queue" and "consume" fields - results of init queue and consume it
  */
-iRabbit.prototype.subscribeQueue = function( name, options1, options2 ){
+// iRabbit.prototype.subscribeQueue = function( name, options1, options2 ){
+iRabbit.prototype.subscribeQueue = function( name, options ){
+
     assert.equal(typeof (name), 'string',    "name string expected");
+
+    var initOptions = typeof(options.init)!='undefined' ? options.init : {} ;
+    var subscribeOptions = typeof(options.consume)!='undefined' ? options.consume : {} ;
 
     var locChannel = false,
         queueHash = 'queue'+name;
-        // console.log(queueHash, this._enity[queueHash]);
     if( typeof( this._enity[queueHash] )=='undefined' || !this._enity[queueHash] ){
         // Если очередь еще не инициализирована - ожидаются отдельные параметры для инита и подписи
-
-        var initOptions = typeof(options1)!='undefined' ? options1 : {} ;
-        var subscribeOptions = typeof(options2)!='undefined' ? options2 : {} ;
-
         return this.initQueue( name, initOptions ).then(function( queue ){
             return this._consumeQueue( queue, subscribeOptions );
         }.bind(this))
         .catch( function(err){ return Q.reject(err); } );
     } else {
         // Очередь инициализирована - ожидаются параметры только для подписи
-
-        var subscribeOptions = typeof(options1)!='undefined' ? options1 : {} ;
-
         return this._enity[queueHash].then(function(queue){
             return this._consumeQueue( queue, subscribeOptions);
         }.bind(this))
@@ -227,11 +224,13 @@ iRabbit.prototype._consumeQueue = function ( queue, options ){
     });
 }
 
-iRabbit.prototype.sendQueue = function( name, message , options1, options2 ) {
+// iRabbit.prototype.sendQueue = function( name, message , options1, options2 ) {
+iRabbit.prototype.sendQueue = function( name, message , options ) {
     assert.notEqual(typeof (message), 'undefined' , "message expected" );
     assert.equal(typeof (name), 'string',    "name string expected");
-    if(typeof(options1)=='undefined') options1={};
-    if(typeof(options2)=='undefined') options2={};
+
+    var initOptions = typeof(options.init)!='undefined' ? options.init : {} ;
+    var sendOptions = typeof(options.send)!='undefined' ? options.send : {} ;
 
     var locChannel = false,
         queueHash = 'queue'+name;
@@ -239,9 +238,6 @@ iRabbit.prototype.sendQueue = function( name, message , options1, options2 ) {
 
     if( typeof( this._enity[queueHash] )=='undefined' || !this._enity[queueHash] ){
         // Если очередь еще не инициализирована - ожидаются отдельные параметры для инита и отправки
-
-        var initOptions = typeof(options1)!='undefined' ? options1 : {} ;
-        var sendOptions = typeof(options2)!='undefined' ? options2 : {} ;
 
         return this.initQueue( name, initOptions ).then(function( queue ){
             return this._sendQueue(
@@ -254,7 +250,6 @@ iRabbit.prototype.sendQueue = function( name, message , options1, options2 ) {
 
     } else {
         // Очередь инициализирована - ожидаются параметры только для подписи
-        var sendOptions = typeof(options1)!='undefined' ? options1 : {} ;
 
         return this._enity[queueHash].then( function( queue ){
             return this._sendQueue(
@@ -315,20 +310,20 @@ iRabbit.prototype.initTopic = function( name, options ) {
     .catch( function(err){ return Q.reject(err); } );
 }
 
-iRabbit.prototype.sendTopic = function( exchangeName, routingKey, message,  options1, options2 ) {
+iRabbit.prototype.sendTopic = function( exchangeName, routingKey, message,  options ) {
+
     assert.equal(typeof (exchangeName), 'string',    "exchangeName string expected");
     assert.equal(typeof (routingKey), 'string',    "routingKey string expected");
     assert.notEqual(typeof (message), 'undefined' , "message expected" );
-    if(typeof(options1)=='undefined') options1={};
-    if(typeof(options2)=='undefined') options2={};
+
+    var initOptions = typeof(options.init)!='undefined' ? options.init : {} ;
+    var sendOptions = typeof(options.send)!='undefined' ? options.send : {} ;
 
     var locChannel = false,
         exchangeHash = 'exchange' + exchangeName;
 
     if( typeof( this._enity[ exchangeHash ] )=='undefined' || !this._enity[ exchangeHash ] ){
         //обменник еще не создан
-        var initOptions = typeof(options1)!='undefined' ? options1 : {} ;
-        var sendOptions = typeof(options2)!='undefined' ? options2 : {} ;
 
         return this.initTopic( exchangeName, initOptions ).then(function( exchange ){
             return this.channel( 'exchange', exchange.exchange ).then(function( channel ){
@@ -347,7 +342,6 @@ iRabbit.prototype.sendTopic = function( exchangeName, routingKey, message,  opti
 
     } else {
         //обменник уже создан
-        var sendOptions = typeof(options1)!='undefined' ? options1 : {} ;
 
         return this.channel( 'exchange', exchangeName )
         .then(function( channel ){
@@ -385,9 +379,14 @@ iRabbit.prototype._sendExchange = function( channel, exchange, message, routingK
     );
 }
 
-iRabbit.prototype.subscribeTopic = function( name, routingKey, options1, options2, options3 ){
+iRabbit.prototype.subscribeTopic = function( name, routingKey, options ){
     assert.equal(typeof (name), 'string',    "name string expected");
     assert.equal(typeof (routingKey), 'string',    "routingKey string expected");
+
+    var exchangeOptions = typeof(options.initTopic)!='undefined' ? options.initTopic : {} ;
+    var queueInitOptions = typeof(options.initQueue)!='undefined' ? options.initQueue : {} ;
+    var queueConsumeOptions = typeof(options.consumeQueue)!='undefined' ? options.consumeQueue : {} ;
+
     // {exclusive: true, durable:true}
     var locChannel = false,
         locExchange = false,
@@ -395,13 +394,10 @@ iRabbit.prototype.subscribeTopic = function( name, routingKey, options1, options
 
     if( typeof( this._enity[exchangeHash] )=='undefined' || !this._enity[exchangeHash] ){
         //exchange еще не создана
-        var exchangeOptions = typeof(options1)!='undefined' ? options1 : {} ;
-        var queueOptions = typeof(options2)!='undefined' ? options2 : {} ;
-        var queueSubscribeOptions = typeof(options3)!='undefined' ? options3 : {} ;
 
         return this.initTopic( name, exchangeOptions ).then(function( exchange ){
             locExchange = exchange;
-            return this._createBindSubscribeQueue( exchange, routingKey, queueOptions );
+            return this._createBindSubscribeQueue( exchange, routingKey, {init:queueInitOptions, consume:queueConsumeOptions} );
         }.bind(this))
         .catch(function( err ){
             return Q.reject( err );
@@ -409,35 +405,38 @@ iRabbit.prototype.subscribeTopic = function( name, routingKey, options1, options
 
     } else {
         //exchange есть
-        var queueOptions = typeof(options1)!='undefined' ? options1 : {} ;
-        var queueSubscribeOptions = typeof(options2)!='undefined' ? options2 : {} ;
 
         return this._enity[exchangeHash].then( function(exchange){
-            return this._createBindSubscribeQueue( exchange , routingKey , queueOptions );
+            return this._createBindSubscribeQueue( exchange , routingKey , {init:queueInitOptions, consume:queueConsumeOptions} );
         }.bind(this) )
     }
 
     return Q.reject( new Error('unexpected situation') );
 }
 
-iRabbit.prototype._createBindSubscribeQueue = function( exchange, routingKey, options, options2 ){
+iRabbit.prototype._createBindSubscribeQueue = function( exchange, routingKey, options ){
+
+    assert.equal(typeof (exchange), 'object',    "exchange object expected");
+    assert.equal(typeof (routingKey), 'string',    "routingKey string expected");
+
+    var initQueueOptions = ( typeof( options.init ) != 'undefined' ) ? options.init : {},
+        subscribeQueueOptions = ( typeof( options.consume ) != 'undefined' ) ? options.consume : {};
 
     var queueName = ''
-      // , options2 = _.extend( typeof(options2)!='undefined'?options2:{} , {reseiveType:'topic'})
-      , options2 = typeof(options2)!='undefined' ? options2 : {}
       , locQueue = false
       , locQueueConsume = false
       , locQueueSubscribe = false
       ;
-    options2.reseiveType = 'topic';
 
-    if( typeof( options ) != 'undefined' && typeof( options.name ) != 'undefined' ){
-        queueName = options.name;
-        delete options.name;
+    subscribeQueueOptions.reseiveType = 'topic';
+
+    if( typeof( initQueueOptions.name ) != 'undefined' ){
+        queueName = initQueueOptions.name;
+        delete initQueueOptions.name;
     } else
-        options2.eventName = exchange.exchange;
+        subscribeQueueOptions.eventName = exchange.exchange;
 
-    return this.subscribeQueue( queueName, options, options2 )
+    return this.subscribeQueue( queueName, {init:initQueueOptions, consume:subscribeQueueOptions} )
     .then(function( result ){
         locQueue = result.queue;
         locQueueConsume = result.consume;
@@ -463,19 +462,20 @@ iRabbit.prototype._createBindSubscribeQueue = function( exchange, routingKey, op
  * RPC queue
  */
 
-iRabbit.prototype.rpcQueueServer = function( queueName, eventFunc, queueInitOptions, queueConsumeOptions, queueResponseOptions ){
+// iRabbit.prototype.rpcQueueServer = function( queueName, eventFunc, queueInitOptions, queueConsumeOptions, queueResponseOptions ){
+iRabbit.prototype.rpcQueueServer = function( queueName, eventFunc, options ){
     assert.equal(typeof (queueName), 'string',    "queueName string expected");
     assert.equal(typeof (eventFunc), 'function',    "eventFunc function expected");
 
-    queueInitOptions = (typeof queueInitOptions != 'undefined') ? queueInitOptions : {};
-    queueConsumeOptions = (typeof queueConsumeOptions != 'undefined') ? queueConsumeOptions : {};
-    queueResponseOptions = (typeof queueResponseOptions != 'undefined') ? queueResponseOptions : {};
+    var queueInitOptions = (options && typeof options.init != 'undefined') ? options.init : {},
+        queueConsumeOptions = (options && typeof options.consume != 'undefined') ? options.consume : {},
+        queueResponseOptions = (options && typeof options.response != 'undefined') ? options.response : {};
 
     /*this.on('receive',function(incObj){
         console.log('RECEIVED: ',incObj.type, incObj.message);
     });*/
 
-    return this.subscribeQueue( queueName, queueInitOptions, queueConsumeOptions )
+    return this.subscribeQueue( queueName, {init:queueInitOptions, consume:queueConsumeOptions} )
         .then(function( result ){
 
             this.on( result.queue.queue+':message', function(incMsg){
@@ -491,16 +491,17 @@ iRabbit.prototype.rpcQueueServer = function( queueName, eventFunc, queueInitOpti
         .catch(function(err){ return Q.reject(err) });
 }
 
-iRabbit.prototype.rpcQueueClient = function( serverQueueName, responceFunc, serverQueueOptions, callbackQueueOptions, callbackQueueConsumeOptions, sendOptions ){
+// iRabbit.prototype.rpcQueueClient = function( serverQueueName, responceFunc, serverQueueOptions, callbackQueueOptions, callbackQueueConsumeOptions, sendOptions ){
+iRabbit.prototype.rpcQueueClient = function( serverQueueName, responceFunc, options ){
 
     assert.equal(typeof (serverQueueName), 'string',    "serverQueueName string expected");
     // assert.equal(typeof (responceFunc), 'function',    "responceFunc function expected");
     if( typeof(responceFunc) == 'undefined' ) responceFunc = function( message ){};
 
-    serverQueueOptions = (typeof serverQueueOptions != 'undefined') ? serverQueueOptions : {};
-    callbackQueueOptions = (typeof callbackQueueOptions != 'undefined') ? callbackQueueOptions : {};
-    callbackQueueConsumeOptions = (typeof callbackQueueConsumeOptions != 'undefined') ? callbackQueueConsumeOptions : {};
-    sendOptions = (typeof sendOptions != 'undefined') ? sendOptions : {};
+    var serverQueueOptions = (options && typeof options.initInc != 'undefined') ? options.initInc : {},
+        callbackQueueOptions = (options && typeof options.initCallback != 'undefined') ? options.initCallback : {},
+        callbackQueueConsumeOptions = (options && typeof options.consumeCallback != 'undefined') ? options.consumeCallback : {},
+        sendOptions = (options && typeof options.send != 'undefined') ? options.send : {};
 
     var hashCode = 'prcQueueClient' + serverQueueName;
 
@@ -508,7 +509,7 @@ iRabbit.prototype.rpcQueueClient = function( serverQueueName, responceFunc, serv
         return this.initQueue( serverQueueName,serverQueueOptions )
         .then( function( serverQueue ){
             //counsume callback queue
-            return this.subscribeQueue('',callbackQueueOptions, callbackQueueConsumeOptions )
+            return this.subscribeQueue('', {init:callbackQueueOptions, consume:callbackQueueConsumeOptions} )
             .then( function( subscribeRes ){
                 // console.log('serverQueue', serverQueue);
                 this._enity[hashCode] = new RpcQueueClient( this, serverQueue, subscribeRes.queue, sendOptions );
@@ -534,17 +535,18 @@ iRabbit.prototype.rpcQueueClient = function( serverQueueName, responceFunc, serv
 /**
  * RPC topic
  */
-iRabbit.prototype.rpcTopicServer = function( exchangeName, routingKey, eventFunc, topicInitOptions, queueInitOptions, queueConsumeOptions, queueResponseOptions ){
+// iRabbit.prototype.rpcTopicServer = function( exchangeName, routingKey, eventFunc, topicInitOptions, queueInitOptions, queueConsumeOptions, queueResponseOptions ){
+iRabbit.prototype.rpcTopicServer = function( exchangeName, routingKey, eventFunc, options ){
     assert.equal(typeof (exchangeName), 'string',    "exchangeName string expected");
     assert.equal(typeof (routingKey), 'string',    "routingKey string expected");
     assert.equal(typeof (eventFunc), 'function',    "eventFunc function expected");
 
-    topicInitOptions = (typeof topicInitOptions != 'undefined') ? topicInitOptions : {};
-    queueInitOptions = (typeof queueInitOptions != 'undefined') ? queueInitOptions : {};
-    queueConsumeOptions = (typeof queueConsumeOptions != 'undefined') ? queueConsumeOptions : {};
-    queueResponseOptions = (typeof queueResponseOptions != 'undefined') ? queueResponseOptions : {};
+    var topicInitOptions = (options && typeof options.initTopic != 'undefined') ? options.initTopic : {},
+        queueInitOptions = (options && typeof options.initQueue != 'undefined') ? options.initQueue : {},
+        queueConsumeOptions = (options && typeof options.consumeQueue != 'undefined') ? options.consumeQueue : {},
+        queueResponseOptions = (options && typeof options.response != 'undefined') ? options.response : {};
 
-    return this.subscribeTopic( exchangeName, routingKey, topicInitOptions, queueInitOptions, queueConsumeOptions )
+    return this.subscribeTopic( exchangeName, routingKey, {initTopic:topicInitOptions, initQueue:queueInitOptions, consumeQueue:queueConsumeOptions} )
     .then(function( result ){
         // add event listener for message
 
@@ -560,22 +562,23 @@ iRabbit.prototype.rpcTopicServer = function( exchangeName, routingKey, eventFunc
     .catch(function(err){ return Q.reject(err) });
 }
 
-iRabbit.prototype.rpcTopicClient = function( exchangeName, responceFunc, topicInitOptions, callbackQueueOptions, callbackQueueConsumeOptions, sendOptions ){
+// iRabbit.prototype.rpcTopicClient = function( exchangeName, responceFunc, topicInitOptions, callbackQueueOptions, callbackQueueConsumeOptions, sendOptions ){
+iRabbit.prototype.rpcTopicClient = function( exchangeName, responceFunc, options ){
 
     assert.equal(typeof (exchangeName), 'string',    "exchangeName string expected");
     // assert.equal(typeof (responceFunc), 'function',    "responceFunc function expected");
     if( typeof(responceFunc) == 'undefined' ) responceFunc = function( message ){};
 
-    topicInitOptions = (typeof topicInitOptions != 'undefined') ? topicInitOptions : {};
-    callbackQueueOptions = (typeof callbackQueueOptions != 'undefined') ? callbackQueueOptions : {};
-    callbackQueueConsumeOptions = (typeof callbackQueueConsumeOptions != 'undefined') ? callbackQueueConsumeOptions : {};
-    sendOptions = (typeof sendOptions != 'undefined') ? sendOptions : {};
+    topicInitOptions = (options && typeof options.initTopic != 'undefined') ? options.initTopic : {};
+    callbackQueueOptions = (options && typeof options.initCallback != 'undefined') ? options.initCallback : {};
+    callbackQueueConsumeOptions = (options && typeof options.consumeCallback != 'undefined') ? options.consumeCallback : {};
+    sendOptions = (options && typeof options.send != 'undefined') ? options.send : {};
 
     var hashCode = 'prcTopicClient' + exchangeName;
 
     if( typeof( this._enity[ hashCode ] ) == 'undefined' || !this._enity[ hashCode ] ){
         // subscribe callback queue
-        return this.subscribeQueue('',callbackQueueOptions, callbackQueueConsumeOptions )
+        return this.subscribeQueue('', {init:callbackQueueOptions, consume:callbackQueueConsumeOptions} )
         // init exchange
         .then( function callbackQueueSubscribed( subscribeCallbackQueueResult ){
             // return channel.assertExchange(config.exchangeName, config.exchangeType, config.exchangeOptions);
@@ -637,8 +640,8 @@ RpcQueueClient.prototype.send = function( message, options ){
         options,
         { correlationId : corrId}
     );
-
-    return this._parent.sendQueue( this.serverQueue.queue, message, options )
+    //Check - sendQueue options
+    return this._parent.sendQueue( this.serverQueue.queue, message, {send:options} )
     .then(function( result ){
         return this.correlations[ corrId ].promise;
     }.bind(this))
@@ -676,8 +679,8 @@ RpcTopicClient.prototype.send = function( routingKey, message, options ){
         { correlationId : corrId }
     );
 
-    // console.log( this.serverExchange, routingKey );
-    return this._parent.sendTopic( this.serverExchange.exchange, routingKey , message, options )
+    // Check - sendTopic optiions
+    return this._parent.sendTopic( this.serverExchange.exchange, routingKey , message, {send:options} )
     .then(function( result ){
         return this.correlations[ corrId ].promise;
     }.bind(this))
