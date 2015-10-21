@@ -10,15 +10,15 @@ var conf    = require( './conf.js' ),
 // iRabbit.initQueue('testQueue');
 
 // subscribe queue testQueue
-/*
+
 // iRabbit.on('receive',console.log);
-iRabbit.on('testQueue:message',function(message){
+/*iRabbit.on('testQueue:message',function(message){
     console.log( 'testQueue:message event: ', message.message );
 });
 iRabbit.subscribeQueue('testQueue').catch( function( err ){
     console.log('THE_ERROR', err.stack);
-});
-*/
+});*/
+
 
 // subscribe topic
 
@@ -26,51 +26,54 @@ iRabbit.subscribeQueue('testQueue').catch( function( err ){
 /*iRabbit.on('testExchange:message',function(incMsg){
     console.log( 'testExchange:message event: ', incMsg.message );
 });
-iRabbit.subscribeTopic('testExchange', 'test.*.*')
+iRabbit.subscribeTopic('testExchange', 'test.test.test')
 .catch( function( err ){
     console.log('THE_ERROR', err.stack);
 });*/
 
-
 // RPC queue server function( queueName, eventFunc, queueInitOptions, queueConsumeOptions, queueResponseOptions )
-iRabbit.rpcQueueServer(
+/*iRabbit.rpcQueueServer(
     'rpcQueueServerIncQ',
     function( incMsg ){
-        // return 'responseMessage for ' + incMsg.message;
-        var deferred =  Q.defer();
 
-        var procTime = parseInt(Math.random()*10000);
-        console.log('process time: ',procTime, 'msg:', incMsg.message);
+        return 'responseMessage for ' + incMsg.message;
 
-        setTimeout( function(){
-            console.log('send Resp');
-            deferred.resolve( 'responseMessage for ' + incMsg.message );
-            incMsg.channel.ack( incMsg.messageObj );
-        }, procTime );
+        // var procTime = parseInt(Math.random()*10000);
+        // console.log('process time: ',procTime, 'msg:', incMsg.message);
+        // var deferred =  Q.defer();
 
-        return deferred.promise;
-    }, null, {
-        manualAck:true
+        // var procTime = parseInt(Math.random()*10000);
+        // console.log('process time: ',procTime);
+
+        // setTimeout( function(){
+        //     console.log('send Resp');
+        //     deferred.resolve( 'responseMessage for ' + incMsg.message );
+        // }, procTime );
+
+        // return deferred.promise;
     }
+    // , null, { manualAck:true }
 ).catch( function(err){
     console.log('THE_ERROR', err);
 }).done( function(result){
     // console.log('DONE', result);
 } );
-
+*/
 // PRC topic server
-/*iRabbit.rpcTopicServer(
+iRabbit.rpcTopicServer(
     'rpcTopicExchange',
     '#',
     function( incMsg ){
+        // console.log('received',incMsg.message);
         // return 'responseMessage for ' + incMsg.message;
+
         var deferred =  Q.defer();
 
         var procTime = parseInt(Math.random()*10000);
         console.log('process time: ',procTime);
 
         setTimeout( function(){
-            console.log('send Resp');
+            console.log('send Resp', incMsg.messageObj.properties.correlationId);
             deferred.resolve( 'responseMessage for ' + incMsg.message );
         }, procTime );
 
@@ -80,4 +83,4 @@ iRabbit.rpcQueueServer(
     console.log('THE_ERROR', err);
 }).done( function(result){
     // console.log('DONE', result);
-} );*/
+} );
