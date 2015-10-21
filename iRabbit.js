@@ -5,8 +5,7 @@ var EventEmitter = require( "events" ).EventEmitter
   , util = require('util')
   , assert = require( 'assert' )
   , _ = require( 'underscore' )
-  // , when = require('./node_modules/amqplib/node_modules/when') // --- just test require sub module - BUT!!! may be should use "when.js" instead of "Q"
-  , Q = require('q')
+  , when = require('when') // --- just test require sub module - BUT!!! may be should use "when.js" instead of "Q"
   , uuid = require('node-uuid');
 
 
@@ -65,7 +64,7 @@ iRabbit.prototype.connect = function() {
                 return this.connection;
             }.bind(this)
         ) . catch( function( err ){
-            return Q.reject(err);
+            return when.reject(err);
         });
     }
     return this._enity[hashCode];
@@ -127,7 +126,7 @@ iRabbit.prototype.channel = function( forEntityType, forEntityName, confirmChann
 
             return this._enity[hashCode];
         }.bind(this)
-    ) . catch( function( err ){ return Q.reject(err); } );
+    ) . catch( function( err ){ return when.reject(err); } );
 }
 
 /*************************
@@ -164,7 +163,7 @@ iRabbit.prototype.initQueue = function( name, options ){
 
             return this._enity[hashCode];
         }.bind(this)
-    ) . catch( function(err){ return Q.reject(err); } );
+    ) . catch( function(err){ return when.reject(err); } );
 }
 
 /**
@@ -227,17 +226,17 @@ iRabbit.prototype.subscribeQueue = function( name, options ){
         return this.initQueue( name, initOptions ).then(function( queue ){
             return this._consumeQueue( queue, subscribeOptions );
         }.bind(this))
-        .catch( function(err){ return Q.reject(err); } );
+        .catch( function(err){ return when.reject(err); } );
     } else {
         // Очередь инициализирована - ожидаются параметры только для подписи
 
         return this._enity[queueHash].then(function(queue){
             return this._consumeQueue( queue, subscribeOptions);
         }.bind(this))
-        .catch( function(err){ return Q.reject(err); } );
+        .catch( function(err){ return when.reject(err); } );
     }
 
-    return Q.reject( new Error('unexpected situation') );
+    return when.reject( new Error('unexpected situation') );
 }
 
 /**
@@ -302,7 +301,7 @@ iRabbit.prototype._consumeQueue = function ( queue, options ){
             options
         );
     }.bind(this) )
-    .catch( function(err){ return Q.reject(err); } )
+    .catch( function(err){ return when.reject(err); } )
     .then( function( consume ){
         return {
             'queue':queue,
@@ -345,7 +344,7 @@ iRabbit.prototype.sendQueue = function( name, message , options ) {
                     sendOptions
             );
         }.bind(this))
-        .catch( function(err){ return Q.reject(err); } );
+        .catch( function(err){ return when.reject(err); } );
 
     } else {
         // Очередь инициализирована - ожидаются параметры только для подписи
@@ -358,10 +357,10 @@ iRabbit.prototype.sendQueue = function( name, message , options ) {
                 sendOptions
             );
         }.bind(this) )
-        .catch( function(err){ return Q.reject(err); } );
+        .catch( function(err){ return when.reject(err); } );
     }
 
-    return Q.reject( new Error('unexpected situation') );
+    return when.reject( new Error('unexpected situation') );
 }
 
 /**
@@ -384,7 +383,7 @@ iRabbit.prototype._sendQueue = function( queue, message, optionsLoc ){
 
         return channel.sendToQueue(queueName, message, options);
     }.bind(this) )
-    .catch( function(err){ return Q.reject(err); } );
+    .catch( function(err){ return when.reject(err); } );
 }
 
 /*************************
@@ -421,7 +420,7 @@ iRabbit.prototype.initTopic = function( name, options ) {
 
         return this._enity[hashCode];
     }.bind(this))
-    .catch( function(err){ return Q.reject(err); } );
+    .catch( function(err){ return when.reject(err); } );
 }
 
 /**
@@ -461,9 +460,9 @@ iRabbit.prototype.sendTopic = function( exchangeName, routingKey, message,  opti
                     sendOptions
                 );
             }.bind(this) )
-            .catch( function(err){ return Q.reject(err); } );
+            .catch( function(err){ return when.reject(err); } );
         }.bind(this))
-        .catch( function(err){ return Q.reject(err); } );
+        .catch( function(err){ return when.reject(err); } );
 
     } else {
         //обменник уже создан
@@ -482,10 +481,10 @@ iRabbit.prototype.sendTopic = function( exchangeName, routingKey, message,  opti
                 );
             }.bind(this));
         }.bind(this) )
-        .catch( function(err){ return Q.reject(err); } );
+        .catch( function(err){ return when.reject(err); } );
     }
 
-    return Q.reject( new Error('unexpected situation') );
+    return when.reject( new Error('unexpected situation') );
 }
 
 iRabbit.prototype._sendExchange = function( channel, exchange, message, routingKey, optionsLoc ){
@@ -544,7 +543,7 @@ iRabbit.prototype.subscribeTopic = function( name, routingKey, options ){
 
         }.bind(this))
         .catch(function( err ){
-            return Q.reject( err );
+            return when.reject( err );
         });
 
     } else {
@@ -555,7 +554,7 @@ iRabbit.prototype.subscribeTopic = function( name, routingKey, options ){
         }.bind(this) )
     }
 
-    return Q.reject( new Error('unexpected situation') );
+    return when.reject( new Error('unexpected situation') );
 }
 
 /**
@@ -597,9 +596,9 @@ iRabbit.prototype._createBindSubscribeQueue = function( exchange, routingKey, op
         .then(function(channel){
             locChannel = channel;
             return channel.bindQueue( result.queue.queue, exchange.exchange, routingKey );
-        }.bind(this)).catch(function(err){ return Q.reject(err) });
+        }.bind(this)).catch(function(err){ return when.reject(err) });
     }.bind(this))
-    .catch(function(err){ return Q.reject(err) })
+    .catch(function(err){ return when.reject(err) })
     .then( function( bindRes ){
         return {
             'queue':locQueue,
@@ -652,15 +651,15 @@ iRabbit.prototype.rpcQueueServer = function( queueName, eventFunc, options ){
             this.on( result.queue.queue+':message', function(incMsg){
                 // console.log(result.queue.queue+':message');
                 return _processRPC.bind(this)( incMsg, eventFunc, queueResponseOptions )
-                .catch(function(err){ return Q.reject(err) });
+                .catch(function(err){ return when.reject(err) });
 
             }.bind(this));
 
             // ???
-            return Q.resolve(result);
+            return when.resolve(result);
 
         }.bind(this))
-        .catch(function(err){ return Q.reject(err) });
+        .catch(function(err){ return when.reject(err) });
 }
 
 /**
@@ -707,16 +706,16 @@ iRabbit.prototype.rpcQueueClient = function( serverQueueName, responceFunc, opti
                 });
                 return this._enity[hashCode];
             }.bind(this) )
-            .catch( function(err){ return Q.reject(err); } );
+            .catch( function(err){ return when.reject(err); } );
 
         }.bind(this) )
-        .catch( function(err){ return Q.reject(err); } );
+        .catch( function(err){ return when.reject(err); } );
     } else {
-        return Q.resolve( this._enity[hashCode] );
+        return when.resolve( this._enity[hashCode] );
     }
 
 
-    return Q.reject('PRC Queue Client create fail');
+    return when.reject('PRC Queue Client create fail');
 }
 
 
@@ -743,14 +742,14 @@ iRabbit.prototype.rpcTopicServer = function( exchangeName, routingKey, eventFunc
 
         this.on( exchangeName+':message', function(incMsg){
             return _processRPC.bind(this)( incMsg, eventFunc, queueResponseOptions )
-            .catch(function(err){ return Q.reject(err) });
+            .catch(function(err){ return when.reject(err) });
         }.bind(this));
 
         // ???
-        return Q.resolve(result);
+        return when.resolve(result);
 
     }.bind(this))
-    .catch(function(err){ return Q.reject(err) });
+    .catch(function(err){ return when.reject(err) });
 }
 
 iRabbit.prototype.rpcTopicClient = function( exchangeName, responceFunc, options ){
@@ -789,15 +788,15 @@ iRabbit.prototype.rpcTopicClient = function( exchangeName, responceFunc, options
                 });
                 return this._enity[ hashCode ];
             }.bind(this) )
-            .catch( function(err){ return Q.reject(err); } );
+            .catch( function(err){ return when.reject(err); } );
         }.bind(this))
-        .catch( function(err){ return Q.reject(err); } );
+        .catch( function(err){ return when.reject(err); } );
     } else {
         // Вернуть промис зарезовленный как клиент
-        return Q.resolve( this._enity[ hashCode ] );
+        return when.resolve( this._enity[ hashCode ] );
     }
 
-    return Q.reject('PRC Topic Client create fail');
+    return when.reject('PRC Topic Client create fail');
 }
 
 
@@ -833,7 +832,7 @@ util.inherits(RpcQueueClient, EventEmitter);
 RpcQueueClient.prototype.send = function( message, options ){
     var corrId = _generateUuid();
 
-    this.correlations[ corrId ] = Q.defer();
+    this.correlations[ corrId ] = when.defer();
 
     var optionsLoc = _.extend(
         this.sendOptions,
@@ -845,7 +844,7 @@ RpcQueueClient.prototype.send = function( message, options ){
     .then(function( result ){
         return this.correlations[ corrId ].promise;
     }.bind(this))
-    .catch( function(err){ return Q.reject( err );});
+    .catch( function(err){ return when.reject( err );});
 
     // console.log( 'return promise' );
     return this.correlations[ corrId ].promise;
@@ -876,7 +875,7 @@ util.inherits(RpcTopicClient, EventEmitter);
 RpcTopicClient.prototype.send = function( routingKey, message, options ){
     var corrId = _generateUuid();
 
-    this.correlations[ corrId ] = Q.defer();
+    this.correlations[ corrId ] = when.defer();
     var optionsLoc = _.extend(
         this.sendOptions,
         options,
@@ -889,7 +888,7 @@ RpcTopicClient.prototype.send = function( routingKey, message, options ){
     .then(function( result ){
         return this.correlations[ corrId ].promise;
     }.bind(this))
-    .catch( function(err){ return Q.reject( err );});
+    .catch( function(err){ return when.reject( err );});
 }
 
 /**
@@ -913,7 +912,7 @@ function _processRPC( incMsg, eventFunc, queueResponseOptions ){
 
     if( typeof( rs.then ) == 'undefined' ){
         //Хм... похоже вернули не промис, ну что ж - сделать промис!
-        rs = Q.resolve( rs );
+        rs = when.resolve( rs );
     }
 
     // console.log( '[proc]', incMsg );
@@ -931,20 +930,20 @@ function _processRPC( incMsg, eventFunc, queueResponseOptions ){
             return this._sendQueue( incMsg.messageObj.properties.replyTo, responseMessage, queueResponseOptions )
             .catch( function(err){
                 // console.log('err', err);
-                return Q.reject(err);
+                return when.reject(err);
             });
         }.bind(this),
         function onReject( err ){
             // console.log('err:',err);
             return this._sendQueue( incMsg.messageObj.properties.replyTo, err, queueResponseOptions )
-            .catch( function(err){ return Q.reject(err); });
+            .catch( function(err){ return when.reject(err); });
         }.bind(this)
     )
     .catch(function(err){
         // console.log('errCatch:',err.stack);
         return this._sendQueue( incMsg.messageObj.properties.replyTo, responseMessage, queueResponseOptions )
-        .catch( function(err){ return Q.reject(err); });
-        // return Q.reject(err);
+        .catch( function(err){ return when.reject(err); });
+        // return when.reject(err);
     });
 }
 
