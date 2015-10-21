@@ -200,13 +200,15 @@ iRabbit.prototype.initQueue = function( name, options ){
  *                 queueName : queueName,
  *                 message : unpackedMessage ,
  *                 messageObj : message,
- *                 channel : channel
+ *                 channel : channel,
+ *                 eventName : eventName
  *     }
  *     событие <name>:message {
  *                 queueName : queueName,
-                   message : unpackedMessage ,
-                   messageObj : message,
-                   channel : channel
+ *                 message : unpackedMessage ,
+ *                 messageObj : message,
+ *                 channel : channel,
+ *                 eventName: eventName
  *     }
  *
  */
@@ -516,7 +518,8 @@ iRabbit.prototype._sendExchange = function( channel, exchange, message, routingK
  *                                         'queue':<рез-тат работы amqplib.assertQueue>,
  *                                         'consume':<рез-тат работы amqplib.consume>,
  *                                         'bind':<рез-тат работы amqplib.bind>,
- *                                         'channel':<используемый канал>
+ *                                         'channel':<используемый канал>,
+ *                                         eventName: <часть имени события (до ":message"), которое будет иметировано при входящем сообщении>
  *                             }
  */
 iRabbit.prototype.subscribeTopic = function( name, routingKey, options ){
