@@ -3,24 +3,10 @@ iRabbit
 
 Easy interface working with RabbitMQ for nodeJS projects.
 
-* It's based on [amqp](https://github.com/postwait/node-amqp) RabbitMQ client.
+* It's based on [amqp.node](https://github.com/squaremo/amqp.node) RabbitMQ client.
 * It's implements promises interface.
 
 Usage
 -----
+Wright now only [example folder](https://github.com/kronius/iRabbit/tree/master/examples) and code comments. Sorry
 
-```node
-    //init iRabbit
-    var rabbit = require( "iRabbit" )(<CONFIG-OBJECT>);
-
-    //init and subscribe queue
-    rabbit = initAndSubscribeQueue({
-        '<QUEUE_NAME>'
-      , {   //this block optional
-            // init queue options object (see details on [amqp queue doc](https://github.com/postwait/node-amqp#connectionqueuename-options-opencallback) )
-            init: {}
-            // subscribe queue options object (see details on [amqp subscribe doc](https://github.com/postwait/node-amqp#queuesubscribeoptions-listener))
-          , subscribe: {}
-        }
-    }).then();
-```
