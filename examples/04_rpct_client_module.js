@@ -7,6 +7,10 @@ var conf    = require( './conf.js' ),
 module.exports = function( routingKey, msg ){
     var deferred = when.defer();
 
+    // iRabbit.addListener('receive',function( incObj ){
+    //     console.log('event receive', incObj.message);
+    // });
+
     iRabbit.rpcTopicClient( 'rpcTopicExchange' ).then(function( client ){
         client.send( routingKey, msg ).then(function(responce){
 
