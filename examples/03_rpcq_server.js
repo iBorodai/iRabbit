@@ -11,7 +11,7 @@ iRabbit.rpcQueueServer(
         return ( incMsg.message == 'Loong' ) ? slowResponse( incMsg ) : fastResponse( incMsg ) ;
     }
 ).catch( function(err){
-    console.log('THE_ERROR', err);
+    console.log('THE_ERROR', err.stack);
 });
 
 

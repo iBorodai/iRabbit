@@ -28,6 +28,7 @@ function iRabbit( config ) {
     this.connection = false;
     this._channel = false;
     this._channels = {};
+    this._uniqId = uuid();
 }
 
 util.inherits(iRabbit, EventEmitter);
@@ -249,13 +250,13 @@ iRabbit.prototype.subscribeQueue = function( name, options ){
 iRabbit.prototype._consumeQueue = function ( queue, options ){
     var queueName = queue.queue,
         locChannel = false,
-        eventName = queueName;
+        eventName = queueName+':message';
 
     if( options && typeof(options.eventName)!='undefined' ){
         eventName = options.eventName;
+        // console.log('eventName',eventName);
         delete options.eventName;
     }
-
 
     return this.channel('queue', queueName)
     .then(function( channel ){
@@ -275,6 +276,9 @@ iRabbit.prototype._consumeQueue = function ( queue, options ){
                 // console.log( 'ConsumeCallback',message.properties.correlationId, eventName,  message.content.toString() );
 
                 var unpackedMessage = _unpackData( message );
+
+                // console.log('emit',eventName);
+
                 this.emit( 'receive',{
                     'type' : ( typeof(options.reseiveType)=='string'? options.reseiveType : 'queue' ),
                     'name' : eventName,
@@ -283,7 +287,7 @@ iRabbit.prototype._consumeQueue = function ( queue, options ){
                     'messageObj' : message,
                     'channel' : channel
                 });
-                this.emit( eventName+':message', {
+                this.emit( eventName, {
                     'queueName' : queueName,
                     'message' : unpackedMessage ,
                     'messageObj' : message,
@@ -494,13 +498,17 @@ iRabbit.prototype._sendExchange = function( channel, exchange, message, routingK
     var options = typeof(optionsLoc)=='object'? _.extend({},optionsLoc) : {};
     options.contentType = packed.mime;
     options.contentEncoding = 'UTF8';
-
+    // console.log(exchange.exchange, routingKey, packed.data);
     return channel.publish(
         exchange.exchange,
         routingKey,
         packed.data,
         options
     );
+}
+
+iRabbit.prototype.addListener = function( eventKey, listener ){
+    _addListener.bind(this)( eventKey, listener );
 }
 
 /**
@@ -645,15 +653,19 @@ iRabbit.prototype.rpcQueueServer = function( queueName, eventFunc, options ){
     return this.subscribeQueue( queueName, {init:queueInitOptions, consume:queueConsumeOptions} )
         .then(function( result ){
 
-            /*this.on('receive',function(incObj){
-                console.log('RECEIVED: ',incObj.type, incObj.name, incObj.message);
+            /*this.on( 'receive', function(incObj){
+                    console.log('RECEIVED: ',incObj.type, incObj.name, incObj.message);
             });*/
-            this.on( result.queue.queue+':message', function(incMsg){
-                // console.log(result.queue.queue+':message');
-                return _processRPC.bind(this)( incMsg, eventFunc, queueResponseOptions )
-                .catch(function(err){ return when.reject(err) });
 
-            }.bind(this));
+            _addListener.bind(this)(
+                result.queue.queue+':message',
+                function(incMsg){
+                    // console.log(result.queue.queue+':message');
+                    return _processRPC.bind(this)( incMsg, eventFunc, queueResponseOptions )
+                    .catch(function(err){ return when.reject(err) });
+
+                }.bind(this)
+            );
 
             // ???
             return when.resolve(result);
@@ -693,17 +705,35 @@ iRabbit.prototype.rpcQueueClient = function( serverQueueName, responceFunc, opti
     var hashCode = 'prcQueueClient' + serverQueueName;
 
     if( typeof(this._enity[hashCode])=='undefined' || !this._enity[hashCode] ){
+
+        var deferred = when.defer();
+        this._enity[hashCode] = deferred.promise;
+        this._enity[hashCode].then(function( client ){
+            this._enity[hashCode] = client;
+        }.bind(this));
+
         return this.initQueue( serverQueueName,serverQueueOptions )
         .then( function( serverQueue ){
             //counsume callback queue
             return this.subscribeQueue('', {init:callbackQueueOptions, consume:callbackQueueConsumeOptions} )
             .then( function( subscribeRes ){
-                // console.log('serverQueue', serverQueue);
-                this._enity[hashCode] = new RpcQueueClient( this, serverQueue, subscribeRes.queue, sendOptions );
-                this.on(subscribeRes.queue.queue+':message', function(message){
-                    responceFunc(message);
-                    _received.bind( this._enity[hashCode] )( message );
-                });
+                // console.log('[!]new client');
+                // this._enity[hashCode] = new RpcQueueClient( this, serverQueue, subscribeRes.queue, sendOptions );
+                deferred.resolve( new RpcQueueClient( this, serverQueue, subscribeRes.queue, sendOptions ) );
+
+                /*_addListener.bind(this)( 'receive', function(incObj){
+                    console.log('receive event ',incObj.name);
+                });*/
+
+                _addListener.bind(this)(
+                    subscribeRes.queue.queue+':message',
+                    function(message){
+                        // console.log('onMesage', message);
+                        responceFunc(message);
+                        _received.bind( this._enity[hashCode] )( message );
+                    }.bind(this)
+                );
+
                 return this._enity[hashCode];
             }.bind(this) )
             .catch( function(err){ return when.reject(err); } );
@@ -739,11 +769,14 @@ iRabbit.prototype.rpcTopicServer = function( exchangeName, routingKey, eventFunc
     .then(function( result ){
 
         // add event listener for message
-
-        this.on( exchangeName+':message', function(incMsg){
-            return _processRPC.bind(this)( incMsg, eventFunc, queueResponseOptions )
-            .catch(function(err){ return when.reject(err) });
-        }.bind(this));
+        // console.log('22 subscibing event',exchangeName+':message');
+        _addListener.bind(this)(
+            exchangeName,
+            function(incMsg){
+                return _processRPC.bind(this)( incMsg, eventFunc, queueResponseOptions )
+                .catch(function(err){ return when.reject(err) });
+            }.bind(this)
+        );
 
         // ???
         return when.resolve(result);
@@ -766,26 +799,39 @@ iRabbit.prototype.rpcTopicClient = function( exchangeName, responceFunc, options
     var hashCode = 'prcTopicClient' + exchangeName;
 
     if( typeof( this._enity[ hashCode ] ) == 'undefined' || !this._enity[ hashCode ] ){
+        var deferred = when.defer();
+        this._enity[hashCode] = deferred.promise;
+        this._enity[hashCode].then(function( client ){
+            this._enity[hashCode] = client;
+        }.bind(this));
+
         // subscribe callback queue
         return this.subscribeQueue('', {init:callbackQueueOptions, consume:callbackQueueConsumeOptions} )
         // init exchange
         .then( function callbackQueueSubscribed( subscribeCallbackQueueResult ){
-            // return channel.assertExchange(config.exchangeName, config.exchangeType, config.exchangeOptions);
+
             return this.initTopic(exchangeName, topicInitOptions)
             .then( function( subscribeExchange ){
                 // console.log(
-                //     subscribeCallbackQueueResult.queue.queue+':message'
+                //     subscribeExchange
                 // );
-                this._enity[ hashCode ] = new RpcTopicClient(
+                /*this._enity[ hashCode ] = new RpcTopicClient(
                     this,
                     subscribeExchange,
                     subscribeCallbackQueueResult.queue,
                     sendOptions
+                );*/
+                deferred.resolve( new RpcTopicClient( this, subscribeExchange, subscribeCallbackQueueResult.queue, sendOptions ) );
+
+                // console.log('listen:',subscribeCallbackQueueResult.queue.queue+':message');
+                _addListener.bind(this)(
+                    subscribeCallbackQueueResult.queue.queue+':message',
+                    function(message){
+                        responceFunc(message);
+                        _received.bind( this._enity[hashCode] )( message );
+                    }.bind(this)
                 );
-                this.on(subscribeCallbackQueueResult.queue.queue+':message', function(message){
-                    responceFunc(message);
-                    _received.bind( this._enity[hashCode] )( message );
-                });
+
                 return this._enity[ hashCode ];
             }.bind(this) )
             .catch( function(err){ return when.reject(err); } );
@@ -819,16 +865,19 @@ function RpcQueueClient( iRabbitInst, serverQueue, callbackQueue, sendOptions ){
 
     this.correlations = {};
 
-    this._parent.on(callbackQueue.queue+':message', function( incMsg ){
-        this.emit('receive', incMsg);
-    });
+    // ИМенно .on  а не _addListener - этот слушатель не пользовательский а системный
+    this.on(
+        callbackQueue.queue+':message',
+        function( incMsg ){
+            this.emit('receive', incMsg);
+        }.bind(this)
+    );
 
     EventEmitter.call(this);
 }
 
 util.inherits(RpcQueueClient, EventEmitter);
 
-// RpcQueueClient.prototype.__send = function( message, options ){}
 RpcQueueClient.prototype.send = function( message, options ){
     var corrId = _generateUuid();
 
@@ -846,7 +895,6 @@ RpcQueueClient.prototype.send = function( message, options ){
     }.bind(this))
     .catch( function(err){ return when.reject( err );});
 
-    // console.log( 'return promise' );
     return this.correlations[ corrId ].promise;
 }
 
@@ -867,6 +915,14 @@ function RpcTopicClient( iRabbitInst, serverExchange, callbackQueue, sendOptions
 
     this.correlations = {};
 
+    // ИМенно .on  а не _addListener - этот слушатель не пользовательский а системный
+    this.on(
+        serverExchange.exchange + ':message',
+        function( incMsg ){
+            this.emit('receive', incMsg);
+        }.bind(this)
+    );
+
     EventEmitter.call(this);
 }
 
@@ -884,7 +940,6 @@ RpcTopicClient.prototype.send = function( routingKey, message, options ){
 
     // Check - sendTopic optiions
     return this._parent.sendTopic( this.serverExchange.exchange, routingKey , message, {send:optionsLoc} )
-
     .then(function( result ){
         return this.correlations[ corrId ].promise;
     }.bind(this))
@@ -926,7 +981,7 @@ function _processRPC( incMsg, eventFunc, queueResponseOptions ){
             ){
                 queueResponseOptions.correlationId = incMsg.messageObj.properties.correlationId;
             }
-
+            // console.log('sendBack',incMsg.messageObj.properties.correlationId, responseMessage);
             return this._sendQueue( incMsg.messageObj.properties.replyTo, responseMessage, queueResponseOptions )
             .catch( function(err){
                 // console.log('err', err);
@@ -1038,25 +1093,16 @@ function _generateUuid(){
     return uuid();
 }
 
+function _addListener( eventKey, listener ){
+    var ekey = 'event'+eventKey;
+    // console.log( 'adding listener', eventKey );
 
-/**
- * iRabbitQueue - подобъект, который возвращается в случае создания очереди или подписывания на очередь.
- * Обоадает функционалом очереди - отправить, подписаться,
- * @param  {[type]} iRabbitObj [description]
- * @param  {[type]} channel    [description]
- * @param  {[type]} queue      [description]
- * @return {[type]}            [description]
- */
-/*function iRabbitQueue( iRabbitObj, channel, queue ) {
-    if ( !(iRabbitObj instanceof iRabbit) ) throw new Error('Expected iRabbit param type');
-    assert.equal(typeof (channel), 'object',    "channel object expected");
-    assert.equal(typeof (queue), 'object',    "queue object expected");
-    assert.equal(typeof (queue.queue), 'string',    "queue.queue string expected");
-
-    EventEmitter.call(this);
-    this._parent = iRabbitObj;
-    this._channel = channel;
-    this._queue = queue;
+    if( typeof(this._enity[ ekey ]) == 'undefined' ){
+        this._enity[ ekey ] = listener;
+        this.on( eventKey , listener );
+        // console.log( '@listening', eventKey );
+    } else {
+        // console.log( 'listener of "'+eventKey +'" exists', this._enity[ ekey ] );
+    }
+    return this._enity[ ekey ] ;
 }
-
-util.inherits(iRabbitQueue, EventEmitter);*/
