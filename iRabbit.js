@@ -964,13 +964,13 @@ function _processRPC( incMsg, eventFunc, queueResponseOptions ){
     }
 
     var rs = eventFunc( incMsg );
-
-    if( typeof( rs.then ) == 'undefined' ){
+    if( typeof(rs) == 'undefined' ){
+        //ОУ! внезапно!... похоже вообще ничего не вернули! делаем эхо
+        rs = when.resolve( 'echo:'+incMsg.message );
+    } else if( typeof( rs.then ) == 'undefined' ){
         //Хм... похоже вернули не промис, ну что ж - сделать промис!
         rs = when.resolve( rs );
     }
-
-    // console.log( '[proc]', incMsg );
 
     return rs.then(
         function onResolve( responseMessage ){
@@ -981,7 +981,7 @@ function _processRPC( incMsg, eventFunc, queueResponseOptions ){
             ){
                 queueResponseOptions.correlationId = incMsg.messageObj.properties.correlationId;
             }
-            // console.log('sendBack',incMsg.messageObj.properties.correlationId, responseMessage);
+
             return this._sendQueue( incMsg.messageObj.properties.replyTo, responseMessage, queueResponseOptions )
             .catch( function(err){
                 // console.log('err', err);
@@ -996,7 +996,7 @@ function _processRPC( incMsg, eventFunc, queueResponseOptions ){
     )
     .catch(function(err){
         // console.log('errCatch:',err.stack);
-        return this._sendQueue( incMsg.messageObj.properties.replyTo, responseMessage, queueResponseOptions )
+        return this._sendQueue( incMsg.messageObj.properties.replyTo, err, queueResponseOptions )
         .catch( function(err){ return when.reject(err); });
         // return when.reject(err);
     });
