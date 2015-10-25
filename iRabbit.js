@@ -122,7 +122,8 @@ iRabbit.prototype.channel = function( forEntityType, forEntityName, confirmChann
                     this._channel = channel;
                     this._channels[hashCode] = channel;
                     // console.log('channel',this._channel);
-                }.bind(this));
+                }.bind(this))
+                 . catch( function(err){ return when.reject(err); } );;
             }
 
             return this._enity[hashCode];
@@ -160,7 +161,8 @@ iRabbit.prototype.initQueue = function( name, options ){
 
             if( typeof(this._enity[hashCode])!='undefined' ) return this._enity[hashCode];
 
-            this._enity[hashCode] = channel.assertQueue( name, options );
+            this._enity[hashCode] = channel.assertQueue( name, options )
+             . catch( function(err){ return when.reject(err); } );
 
             return this._enity[hashCode];
         }.bind(this)
@@ -213,7 +215,6 @@ iRabbit.prototype.initQueue = function( name, options ){
  *
  */
 iRabbit.prototype.subscribeQueue = function( name, options ){
-
     assert.equal(typeof (name), 'string',    "name string expected");
 
     var initOptions = (options && typeof(options.init)!='undefined' ) ? _.extend({},options.init) : {} ;
@@ -227,7 +228,9 @@ iRabbit.prototype.subscribeQueue = function( name, options ){
         return this.initQueue( name, initOptions ).then(function( queue ){
             return this._consumeQueue( queue, subscribeOptions );
         }.bind(this))
-        .catch( function(err){ return when.reject(err); } );
+        .catch( function(err){
+            // console.log('here');
+            return when.reject(err); } );
     } else {
         // Очередь инициализирована - ожидаются параметры только для подписи
 
@@ -268,12 +271,12 @@ iRabbit.prototype._consumeQueue = function ( queue, options ){
             if( p > 0 ) channel.prefetch( p );
             delete options.prefetch;
         }
-        // console.log('options', options);
+        console.log('- consume',queueName, 'eventName', eventName,'options', options);
         return channel.consume(
             queueName,
             function ConsumeCallback( message ){ // коллбэк ф-я приема сообщений
 
-                // console.log( 'ConsumeCallback',message.properties.correlationId, eventName,  message.content.toString() );
+                // console.log( '>>> ConsumeCallback', eventName, message.properties.correlationId ,   message.content.toString() );
 
                 var unpackedMessage = _unpackData( message );
 
@@ -300,12 +303,18 @@ iRabbit.prototype._consumeQueue = function ( queue, options ){
                 ){
                     channel.ack( message );
                 }
-
             }.bind(this),
             options
-        );
+        )
+        .then( function(res){
+            // console.log(res);
+            return res;
+        } )
+        .catch( function(err){
+            // console.log('errrrrr');
+            return when.reject(err);
+        } );
     }.bind(this) )
-    .catch( function(err){ return when.reject(err); } )
     .then( function( consume ){
         return {
             'queue':queue,
@@ -313,7 +322,11 @@ iRabbit.prototype._consumeQueue = function ( queue, options ){
             'channel':locChannel,
             'eventName':eventName
         };
-    });
+    })
+    .catch( function(err){
+        console.log('errrrrr222');
+        return when.reject(err);
+    } );
 }
 
 /**
@@ -762,6 +775,9 @@ iRabbit.prototype.rpcTopicServer = function( exchangeName, routingKey, eventFunc
         queueConsumeOptions = (options && typeof options.consumeQueue != 'undefined') ? _.extend({},options.consumeQueue) : {},
         queueResponseOptions = (options && typeof options.response != 'undefined') ? _.extend({},options.response) : {};
 
+    if( typeof(queueInitOptions.name)=='undefined' ){
+        queueInitOptions.name = 'cbServer' + exchangeName+routingKey;
+    }
     queueConsumeOptions.noAck = false;
     queueConsumeOptions.prefetch = 1;
 
@@ -769,9 +785,9 @@ iRabbit.prototype.rpcTopicServer = function( exchangeName, routingKey, eventFunc
     .then(function( result ){
 
         // add event listener for message
-        // console.log('22 subscibing event',exchangeName+':message');
+        // console.log('22 subscibing event',result.eventName);
         _addListener.bind(this)(
-            exchangeName,
+            result.eventName,
             function(incMsg){
                 return _processRPC.bind(this)( incMsg, eventFunc, queueResponseOptions )
                 .catch(function(err){ return when.reject(err) });
@@ -805,16 +821,22 @@ iRabbit.prototype.rpcTopicClient = function( exchangeName, responceFunc, options
             this._enity[hashCode] = client;
         }.bind(this));
 
+        // gen callback queue name
+        if( typeof(callbackQueueOptions.name)=='undefined' ){
+            var callbackQueueName = 'cbClient'+exchangeName;
+        } else {
+            var callbackQueueName = callbackQueueOptions.name;
+        }
         // subscribe callback queue
-        return this.subscribeQueue('', {init:callbackQueueOptions, consume:callbackQueueConsumeOptions} )
+        return this.subscribeQueue(callbackQueueName, {init:callbackQueueOptions, consume:callbackQueueConsumeOptions} )
         // init exchange
         .then( function callbackQueueSubscribed( subscribeCallbackQueueResult ){
 
             return this.initTopic(exchangeName, topicInitOptions)
             .then( function( subscribeExchange ){
-                // console.log(
-                //     subscribeExchange
-                // );
+                /*console.log(
+                    subscribeExchange
+                );*/
                 /*this._enity[ hashCode ] = new RpcTopicClient(
                     this,
                     subscribeExchange,
