@@ -9,8 +9,6 @@ var args = process.argv.slice(2);
 var routingKey = (args.length > 0) ? args[0] : 'z.z.z';
 var message = (args.length > 1) ? args[1] : 'defaultMessage';
 
-// console.log( routingKey, message ); process.exit();
-
 iRabbit.on('expired',function(msg){
     console.log('event expired listener', msg );
 });

@@ -5,9 +5,12 @@ var EventEmitter = require( "events" ).EventEmitter
   , util = require('util')
   , assert = require( 'assert' )
   , _ = require( 'underscore' )
-  , when = require('when') // --- just test require sub module - BUT!!! may be should use "when.js" instead of "Q"
-  , uuid = require('node-uuid');
+  , when = require('when')
+  , uuid = require('node-uuid')
+  , log4js = require('log4js')
+;
 
+var logCalls = false;
 
 /**
  * Внутренний метод, создающий экземпляр объекта iRabbit. Используется в методе Singletone
@@ -16,6 +19,25 @@ var EventEmitter = require( "events" ).EventEmitter
  * @return {null}            there is no retuen value
  */
 function iRabbit( config ) {
+    // Config log4js
+    var log4jsConf = {},
+        log4jsConfDef = {
+          "appenders": [
+            { "type": "console" }
+            // , { "type": "file", "filename": "logs/log-calls.log", "category": "logCalls" }
+          ]
+          , "replaceConsole": true
+        };
+    if( typeof(config.log4js)!='undefined' )
+        log4jsConf = _.extend(log4jsConfDef, config.log4js);
+    else
+        log4jsConf = log4jsConfDef;
+    log4js.configure( log4jsConf );
+    logCalls = log4js.getLogger('logCalls');
+    // logCalls.setLevel('debug');
+    // Config log4js
+
+    // logCalls.info('iRabbit constructor', config);
     assert.equal(typeof (config), 'object',    "config object expected");
     assert.equal(typeof (config.connection), 'object',    "config.connection object expected");
     assert.equal(typeof (config.connection.url), 'string',    "config.connection.url string expected");
@@ -52,8 +74,9 @@ module.exports = function Singleton( config ){
  * @return {promise} результат amqplib connect
  */
 iRabbit.prototype.connect = function() {
+    // logCalls.info('iRabbit connect', this._config.connection);
     var hashCode = 'connection'+makeHash(this._config.connection);
-
+    // console.log('connection entity:',hashCode, this._enity[hashCode]);
     if( typeof(this._enity[hashCode])=='undefined' || !this._enity[hashCode] ){
         var url = this._config.connection.url;
         var opts = this._config.connection; //delete opts.url;
@@ -76,6 +99,7 @@ iRabbit.prototype.connect = function() {
  * @return {boolean}
  */
 iRabbit.prototype.close = function() {
+    // logCalls.info('iRabbit close');
     //Не могу понять почему, но если вызывать close в sendQueue.then - сообщение не доставляется в очередь
     setTimeout( function(){
         for( var hash in this._channels ){
@@ -98,7 +122,7 @@ iRabbit.prototype.close = function() {
  * @return {promise}                Промис
  */
 iRabbit.prototype.channel = function( forEntityType, forEntityName, confirmChannel ) {
-    // console.log('channel called');
+    // logCalls.info('iRabbit channel');
     if( arguments.length == 1 && typeof(forEntityType) == 'boolean' ){
         confirmChannel = forEntityType;
     }
@@ -110,10 +134,10 @@ iRabbit.prototype.channel = function( forEntityType, forEntityName, confirmChann
 
             // var hashCode = 'channel'+makeHash( (forEntityType.toString())+(forEntityName.toString())+(confirmChannel.toString()) );
             var hashCode = 'channel'; //Потому что не вижу конфликта в использовании одного канала одновременно для очередей и эксченджей
-
             if( typeof(this._enity[hashCode])=='undefined' || !this._enity[hashCode] ){
+                // console.log(' --- ',hashCode, forEntityType, forEntityName, confirmChannel);
                 if( confirmChannel ){
-                    this._enity[hashCode] = this.connection.createConfirmChannel(channel);
+                    this._enity[hashCode] = this.connection.createConfirmChannel();
                 } else {
                     this._enity[hashCode] = this.connection.createChannel();
                 }
@@ -140,33 +164,69 @@ iRabbit.prototype.channel = function( forEntityType, forEntityName, confirmChann
  * Создание очереди
  * @param  {string} name    название очереди, может быть пустой строкой (в этом случае название будет сформировано автоматически)
  * @param  {object} options (optional) параметры создания очереди для amqplib.assertQueue ( http://www.squaremobius.net/amqp.node/channel_api.html#channel_assertQueue )
+ *                          не стандартные параемтры в составе options:
+ *                          - catchExpired (bool) если true - инициируется механизм обработки не доставленных сообщений (сообщения, которые из очереди не ушли подписчику в течении expiration)
  * @return {promise}        результат работы amqplib.assertQueue
  */
 iRabbit.prototype.initQueue = function( name, options ){
+
     assert.equal(typeof (name), 'string',    "name string expected");
 
+    // logCalls.info('iRabbit initQueue', name);
     //apply default options
     var defOptions = {
         'durable':false,
         'exclusive':false,
-        'autoDelete':true
+        'autoDelete':true,
+        // 'deadLetterExchange':'defaultDeadLetterExchange'
     };
 
     if( typeof(options) == 'undefined' ) options = defOptions;
     else options =  _.extend(defOptions, options);
-    // console.log(options); process.exit;
+
 
     return this.channel( 'queue', name ).then( function channelInited( channel ){
-            var hashCode = 'queue' + name;
+            var hashCode = (name=='') ? false : 'queue' + name;
 
-            if( typeof(this._enity[hashCode])!='undefined' ) return this._enity[hashCode];
+            if( hashCode && typeof(this._enity[hashCode])!='undefined' ) return this._enity[hashCode];
 
-            this._enity[hashCode] = channel.assertQueue( name, options )
-             . catch( function(err){ return when.reject(err); } );
+            // var queueAssertRes = false;
+            return channel.assertQueue( name, options )
+                .then( function( queueAssertRes ){
 
-            return this._enity[hashCode];
+                    if(hashCode) this._enity[hashCode] = queueAssertRes;
+
+                    // init deadLetterExchange if need
+                    if(
+                        typeof(options.deadLetterExchange)!='undefined' ||
+                        typeof(options.deadLetterRoutingKey)!='undefined'
+                    ) options.catchExpired = true;
+
+                    if( typeof(options.catchExpired)!='undefined' ){
+                        if( typeof(options.deadLetterExchange) == 'undefined' ){ options.deadLetterExchange = this.getDefaultDeadletterExchange(); }
+                        if( typeof(options.deadLetterRoutingKey) == 'undefined' ){ options.deadLetterRoutingKey = this.getDefaultDeadletterRoutingKey( name ); }
+                        this.initTopic( options.deadLetterExchange )
+                        .then( function(){
+                            return queueAssertRes;
+                        } );
+                    }
+
+                    return queueAssertRes;
+
+                }.bind(this))
+                .catch( function(err){ return when.reject(err); } );
+
+            // return queueAssertRes;
         }.bind(this)
     ) . catch( function(err){ return when.reject(err); } );
+}
+
+iRabbit.prototype.getDefaultDeadletterExchange = function(){
+    return 'defaultDeadLetterExchange';
+}
+
+iRabbit.prototype.getDefaultDeadletterRoutingKey = function( name ){
+    return 'default.expired.'+ ( (name=='')?'queue':name ) ;
 }
 
 /**
@@ -217,23 +277,33 @@ iRabbit.prototype.initQueue = function( name, options ){
 iRabbit.prototype.subscribeQueue = function( name, options ){
     assert.equal(typeof (name), 'string',    "name string expected");
 
+    // logCalls.info('iRabbit subscribeQueue', name);
+
     var initOptions = (options && typeof(options.init)!='undefined' ) ? _.extend({},options.init) : {} ;
     var subscribeOptions = (options && typeof(options.consume)!='undefined') ? _.extend({},options.consume) : {} ;
 
     var locChannel = false,
         queueHash = 'queue'+name;
+
+
+    /*return this.initQueue( name, initOptions ).then(function( queue ){
+        return this._consumeQueue( queue, subscribeOptions );
+    }.bind(this))
+    .catch( function(err){
+        // console.log('here');
+        return when.reject(err);
+    } );*/
     if( typeof( this._enity[queueHash] )=='undefined' || !this._enity[queueHash] ){
         // Если очередь еще не инициализирована - ожидаются отдельные параметры для инита и подписи
-
         return this.initQueue( name, initOptions ).then(function( queue ){
             return this._consumeQueue( queue, subscribeOptions );
         }.bind(this))
         .catch( function(err){
             // console.log('here');
-            return when.reject(err); } );
+            return when.reject(err);
+        } );
     } else {
         // Очередь инициализирована - ожидаются параметры только для подписи
-
         return this._enity[queueHash].then(function(queue){
             return this._consumeQueue( queue, subscribeOptions);
         }.bind(this))
@@ -260,9 +330,10 @@ iRabbit.prototype._consumeQueue = function ( queue, options ){
         // console.log('eventName',eventName);
         delete options.eventName;
     }
-
+    // console.log('_consumeQueue options:', options);
     return this.channel('queue', queueName)
     .then(function( channel ){
+        // console.log('_consumeQueue consume:', channel);
         locChannel = channel;
 
         if( typeof(options.prefetch)!='undefined' ){
@@ -271,7 +342,7 @@ iRabbit.prototype._consumeQueue = function ( queue, options ){
             if( p > 0 ) channel.prefetch( p );
             delete options.prefetch;
         }
-        console.log('- consume',queueName, 'eventName', eventName,'options', options);
+        // console.log('-- consume',queueName, 'eventName', eventName,'options', options);
         return channel.consume(
             queueName,
             function ConsumeCallback( message ){ // коллбэк ф-я приема сообщений
@@ -280,7 +351,7 @@ iRabbit.prototype._consumeQueue = function ( queue, options ){
 
                 var unpackedMessage = _unpackData( message );
 
-                // console.log('emit',eventName);
+                // console.log('emit(312)',eventName);
 
                 this.emit( 'receive',{
                     'type' : ( typeof(options.reseiveType)=='string'? options.reseiveType : 'queue' ),
@@ -324,7 +395,7 @@ iRabbit.prototype._consumeQueue = function ( queue, options ){
         };
     })
     .catch( function(err){
-        console.log('errrrrr222');
+        console.log('errrrrr222', err);
         return when.reject(err);
     } );
 }
@@ -343,6 +414,8 @@ iRabbit.prototype._consumeQueue = function ( queue, options ){
 iRabbit.prototype.sendQueue = function( name, message , options ) {
     assert.notEqual(typeof (message), 'undefined' , "message expected" );
     assert.equal(typeof (name), 'string',    "name string expected");
+
+    // logCalls.info('iRabbit sendQueue', name);
 
     if( typeof(options) == 'undefined' ) options = {};
     var initOptions = typeof(options.init)!='undefined' ? _.extend({},options.init) : {} ;
@@ -365,8 +438,12 @@ iRabbit.prototype.sendQueue = function( name, message , options ) {
 
     } else {
         // Очередь инициализирована - ожидаются параметры только для подписи
-
-        return this._enity[queueHash].then( function( queue ){
+        return this._sendQueue(
+                this._enity[queueHash].queue,
+                message,
+                sendOptions
+            );
+        /*return this._enity[queueHash].then( function( queue ){
 
             return this._sendQueue(
                 queue,
@@ -374,7 +451,7 @@ iRabbit.prototype.sendQueue = function( name, message , options ) {
                 sendOptions
             );
         }.bind(this) )
-        .catch( function(err){ return when.reject(err); } );
+        .catch( function(err){ return when.reject(err); } );*/
     }
 
     return when.reject( new Error('unexpected situation') );
@@ -417,9 +494,11 @@ iRabbit.prototype._sendQueue = function( queue, message, optionsLoc ){
 iRabbit.prototype.initTopic = function( name, options ) {
     assert.equal(typeof (name), 'string',    "name string expected");
 
+    // logCalls.info('iRabbit initTopic', name);
+
     //apply default options
     var defOptions = {
-        'durable' : true,
+        'durable' : false,
         'internal' : false,
         'exclusive' : false,
         'autoDelete' : true
@@ -456,6 +535,8 @@ iRabbit.prototype.sendTopic = function( exchangeName, routingKey, message,  opti
     assert.equal(typeof (exchangeName), 'string',    "exchangeName string expected");
     assert.equal(typeof (routingKey), 'string',    "routingKey string expected");
     assert.notEqual(typeof (message), 'undefined' , "message expected" );
+
+    // logCalls.info('iRabbit sendTopic', exchangeName, routingKey);
 
     var initOptions = ( options && typeof(options.init)!='undefined' ) ? _.extend({},options.init) : {} ;
     var sendOptions = ( options && typeof(options.send)!='undefined' ) ? _.extend({},options.send) : {} ;
@@ -511,7 +592,7 @@ iRabbit.prototype._sendExchange = function( channel, exchange, message, routingK
     var options = typeof(optionsLoc)=='object'? _.extend({},optionsLoc) : {};
     options.contentType = packed.mime;
     options.contentEncoding = 'UTF8';
-    // console.log(exchange.exchange, routingKey, packed.data);
+    // console.log('-- send exchange: ',exchange.exchange, routingKey, options);
     return channel.publish(
         exchange.exchange,
         routingKey,
@@ -546,12 +627,13 @@ iRabbit.prototype.subscribeTopic = function( name, routingKey, options ){
     assert.equal(typeof (name), 'string',    "name string expected");
     assert.equal(typeof (routingKey), 'string',    "routingKey string expected");
 
+    // logCalls.info('iRabbit subscribeTopic', name, routingKey);
+
     if( typeof(options)=='undefined' ) options = {};
     var exchangeOptions = typeof(options.initTopic)!='undefined' ? options.initTopic : {} ;
     var queueInitOptions = typeof(options.initQueue)!='undefined' ? options.initQueue : {} ;
     var queueConsumeOptions = typeof(options.consumeQueue)!='undefined' ? options.consumeQueue : {} ;
 
-    // {exclusive: true, durable:true}
     var locChannel = false,
         locExchange = false,
         exchangeHash = 'exchange' + name;
@@ -654,13 +736,17 @@ iRabbit.prototype.rpcQueueServer = function( queueName, eventFunc, options ){
     assert.equal(typeof (queueName), 'string',    "queueName string expected");
     assert.equal(typeof (eventFunc), 'function',    "eventFunc function expected");
 
+    // logCalls.info('iRabbit rpcQueueServer', queueName);
+
     if( typeof(options)=='undefined' ) options = {};
     var queueInitOptions = ( typeof options.init != 'undefined') ? _.extend({},options.init) : {},
         queueConsumeOptions = ( typeof options.consume != 'undefined') ? _.extend({},options.consume) : {},
         queueResponseOptions = ( typeof options.response != 'undefined') ? _.extend({},options.response) : {};
 
-    queueConsumeOptions.noAck = false;
-    queueConsumeOptions.prefetch = 1;
+    if( typeof(queueConsumeOptions.noAck) == 'undefined' )
+        queueConsumeOptions.noAck = false;
+    if( typeof(queueConsumeOptions.prefetch) == 'undefined' )
+        queueConsumeOptions.prefetch = 1;
 
 
     return this.subscribeQueue( queueName, {init:queueInitOptions, consume:queueConsumeOptions} )
@@ -704,16 +790,19 @@ iRabbit.prototype.rpcQueueServer = function( queueName, eventFunc, options ){
 iRabbit.prototype.rpcQueueClient = function( serverQueueName, responceFunc, options ){
 
     assert.equal(typeof (serverQueueName), 'string',    "serverQueueName string expected");
-    // assert.equal(typeof (responceFunc), 'function',    "responceFunc function expected");
     if( typeof(responceFunc) == 'undefined' ) responceFunc = function( message ){};
+
+    // logCalls.info('iRabbit rpcQueueClient', serverQueueName);
 
     var serverQueueOptions = (options && typeof options.initServerQueue != 'undefined') ? _.extend({},options.initServerQueue) : {},
         callbackQueueOptions = (options && typeof options.initCallbackQueue != 'undefined') ? _.extend({},options.initCallbackQueue) : {},
         callbackQueueConsumeOptions = (options && typeof options.consumeCallbackQueue != 'undefined') ? _.extend({},options.consumeCallbackQueue) : {},
         sendOptions = (options && typeof options.send != 'undefined') ? _.extend({},options.send) : {};
 
-    callbackQueueOptions.exclusive = true;
-    callbackQueueConsumeOptions.noAck = true;
+    if( typeof(callbackQueueOptions.exclusive) == 'undefined' )
+        callbackQueueOptions.exclusive = true;
+    if( typeof(callbackQueueConsumeOptions.noAck) == 'undefined' )
+        callbackQueueConsumeOptions.noAck = true;
 
     var hashCode = 'prcQueueClient' + serverQueueName;
 
@@ -741,7 +830,6 @@ iRabbit.prototype.rpcQueueClient = function( serverQueueName, responceFunc, opti
                 _addListener.bind(this)(
                     subscribeRes.queue.queue+':message',
                     function(message){
-                        // console.log('onMesage', message);
                         responceFunc(message);
                         _received.bind( this._enity[hashCode] )( message );
                     }.bind(this)
@@ -770,22 +858,36 @@ iRabbit.prototype.rpcTopicServer = function( exchangeName, routingKey, eventFunc
     assert.equal(typeof (routingKey), 'string',    "routingKey string expected");
     assert.equal(typeof (eventFunc), 'function',    "eventFunc function expected");
 
+    // logCalls.info('iRabbit rpcTopicServer', exchangeName, routingKey);
+
     var topicInitOptions = (options && typeof options.initTopic != 'undefined') ? _.extend({},options.initTopic)  : {},
         queueInitOptions = (options && typeof options.initQueue != 'undefined') ? _.extend({},options.initQueue) : {},
         queueConsumeOptions = (options && typeof options.consumeQueue != 'undefined') ? _.extend({},options.consumeQueue) : {},
         queueResponseOptions = (options && typeof options.response != 'undefined') ? _.extend({},options.response) : {};
 
-    if( typeof(queueInitOptions.name)=='undefined' ){
-        queueInitOptions.name = 'cbServer' + exchangeName+routingKey;
-    }
-    queueConsumeOptions.noAck = false;
-    queueConsumeOptions.prefetch = 1;
+        // Сервер безусловно инициирует создание ексченджа обработки мертвых сообщений
+        // ИМЯ topic для expired определяется в инициализации очереди, для того чтобы оно было едино для всех
+        if( typeof(queueInitOptions.deadLetterExchange) == 'undefined' )
+            queueInitOptions.deadLetterExchange = this.getDefaultDeadletterExchange();
+        if( typeof(queueInitOptions.deadLetterRoutingKey) == 'undefined' )
+            queueInitOptions.deadLetterRoutingKey = this.getDefaultDeadletterRoutingKey();
+        if( typeof(queueInitOptions.messageTtl) == 'undefined' )
+            queueInitOptions.messageTtl = 30000; //по умолчанию TTL сообщения 30 сек.
 
+    if( typeof(queueInitOptions.name)=='undefined' ){
+        // queueInitOptions.name = 'cbServer' + exchangeName+routingKey;
+        queueInitOptions.name = '';
+    }
+
+    if( typeof(queueConsumeOptions.noAck)=='undefined' )
+        queueConsumeOptions.noAck = false;
+    if( typeof(queueConsumeOptions.prefetch)=='undefined' )
+        queueConsumeOptions.prefetch = 1;
+    // console.log('server queueInitOptions',queueInitOptions);
     return this.subscribeTopic( exchangeName, routingKey, {initTopic:topicInitOptions, initQueue:queueInitOptions, consumeQueue:queueConsumeOptions} )
     .then(function( result ){
-
+        // console.log('---subscribeTopic result:', result.eventName);
         // add event listener for message
-        // console.log('22 subscibing event',result.eventName);
         _addListener.bind(this)(
             result.eventName,
             function(incMsg){
@@ -794,7 +896,6 @@ iRabbit.prototype.rpcTopicServer = function( exchangeName, routingKey, eventFunc
             }.bind(this)
         );
 
-        // ???
         return when.resolve(result);
 
     }.bind(this))
@@ -805,9 +906,15 @@ iRabbit.prototype.rpcTopicClient = function( exchangeName, responceFunc, options
 
     assert.equal(typeof (exchangeName), 'string',    "exchangeName string expected");
     // assert.equal(typeof (responceFunc), 'function',    "responceFunc function expected");
-    if( typeof(responceFunc) == 'undefined' ) responceFunc = function( message ){};
+
+    // logCalls.info('iRabbit rpcTopicClient', exchangeName);
+
+    if( typeof(responceFunc) == 'undefined' ||
+        responceFunc == false
+    ) responceFunc = function( message ){};
 
     var topicInitOptions = (options && typeof options.initTopic != 'undefined') ? _.extend({},options.initTopic) : {};
+    var expiredOptions = (options && typeof options.expired != 'undefined') ? _.extend({},options.expired) : {};
     var callbackQueueOptions = (options && typeof options.initCallbackQueue != 'undefined') ? _.extend({},options.initCallbackQueue) : {};
     var callbackQueueConsumeOptions = (options && typeof options.consumeCallback != 'undefined') ? _.extend({},options.consumeCallback) : {};
     var sendOptions = (options && typeof options.send != 'undefined') ? _.extend({},options.send) : {};
@@ -823,7 +930,7 @@ iRabbit.prototype.rpcTopicClient = function( exchangeName, responceFunc, options
 
         // gen callback queue name
         if( typeof(callbackQueueOptions.name)=='undefined' ){
-            var callbackQueueName = 'cbClient'+exchangeName;
+            var callbackQueueName = '';
         } else {
             var callbackQueueName = callbackQueueOptions.name;
         }
@@ -834,18 +941,33 @@ iRabbit.prototype.rpcTopicClient = function( exchangeName, responceFunc, options
 
             return this.initTopic(exchangeName, topicInitOptions)
             .then( function( subscribeExchange ){
-                /*console.log(
-                    subscribeExchange
-                );*/
-                /*this._enity[ hashCode ] = new RpcTopicClient(
-                    this,
-                    subscribeExchange,
-                    subscribeCallbackQueueResult.queue,
-                    sendOptions
-                );*/
-                deferred.resolve( new RpcTopicClient( this, subscribeExchange, subscribeCallbackQueueResult.queue, sendOptions ) );
 
-                // console.log('listen:',subscribeCallbackQueueResult.queue.queue+':message');
+                // deadletter begin
+                    /*// Клиент безусловно создает ексченж для deadletter
+                    if( typeof(expiredOptions.deadLetterExchange) == 'undefined' )
+                        expiredOptions.deadLetterExchange = this.getDefaultDeadletterExchange();
+                    // this.initTopic( expiredOptions.deadLetterExchange );
+                    console.log('-- subscribeTopic',expiredOptions.deadLetterExchange, expiredOptions.deadLetterExchange);
+                    this.subscribeTopic( expiredOptions.deadLetterExchange, expiredOptions.deadLetterExchange )
+                    .then(function( result ){
+                    console.log('-- bind event',result.eventName)
+                        // add event listener for message
+                        _addListener.bind(this)(
+                            result.eventName,
+                            function(incMsg){
+                                console.log('expired message: ',incMsg.message);
+                            }.bind(this)
+                        );
+
+                        return when.resolve(result);
+
+                    }.bind(this))
+                    // .catch(function(err){ return when.reject(err) })
+                    ;*/
+                // deadletter end
+
+                deferred.resolve( new RpcTopicClient( this, subscribeExchange, subscribeCallbackQueueResult.queue, sendOptions, expiredOptions.deadLetterExchange ) );
+
                 _addListener.bind(this)(
                     subscribeCallbackQueueResult.queue.queue+':message',
                     function(message){
@@ -878,6 +1000,7 @@ function RpcQueueClient( iRabbitInst, serverQueue, callbackQueue, sendOptions ){
     this._parent = iRabbitInst;
     this.serverQueue = serverQueue;
     this.callbackQueue = callbackQueue;
+    this._subscribedDeadletter = {}; //массив признаков на какие routingKey клиент подписан в рамках deadletterExchange
 
     this.buffer = [];
     this.sendProcess = false;
@@ -886,6 +1009,7 @@ function RpcQueueClient( iRabbitInst, serverQueue, callbackQueue, sendOptions ){
     this.sendOptions.replyTo = callbackQueue.queue;
 
     this.correlations = {};
+    this.expiredTimers = {};
 
     // ИМенно .on  а не _addListener - этот слушатель не пользовательский а системный
     this.on(
@@ -913,7 +1037,12 @@ RpcQueueClient.prototype.send = function( message, options ){
     //Check - sendQueue options
     return this._parent.sendQueue( this.serverQueue.queue, message, {send:optionsLoc} )
     .then(function( result ){
+
+        if( typeof(optionsLoc.expiration)!='undefined' )
+            _setExpirationTimer.bind(this)(corrId,optionsLoc.expiration);
+
         return this.correlations[ corrId ].promise;
+
     }.bind(this))
     .catch( function(err){ return when.reject( err );});
 
@@ -927,15 +1056,18 @@ RpcQueueClient.prototype.send = function( message, options ){
  * @param {object} serverQueue   amqplib-queue of rpcQueueServer incuming queue
  * @param {object} callbackQueue amqplib-queue of prcQueueClient callback queue
  */
-function RpcTopicClient( iRabbitInst, serverExchange, callbackQueue, sendOptions ){
+function RpcTopicClient( iRabbitInst, serverExchange, callbackQueue, sendOptions, deadletterExchangeName ){
     this._parent = iRabbitInst;
     this.serverExchange = serverExchange;
     this.callbackQueue = callbackQueue;
+    this._subscribedDeadletter = {}; //массив признаков на какие routingKey клиент подписан в рамках deadletterExchange
+    this._deadletterExchangeName = deadletterExchangeName;
 
     this.sendOptions = typeof(sendOptions)!='undefined' ? sendOptions : {} ;
     this.sendOptions.replyTo = callbackQueue.queue;
 
     this.correlations = {};
+    this.expiredTimers = {};
 
     // ИМенно .on  а не _addListener - этот слушатель не пользовательский а системный
     this.on(
@@ -960,9 +1092,17 @@ RpcTopicClient.prototype.send = function( routingKey, message, options ){
         { correlationId : corrId }
     );
 
-    // Check - sendTopic optiions
+    // ВЫставить expiration сообщения по умолчанию
+    if( typeof(options)=='undefined' ) options = {};
+    if( typeof(options.expiration)=='undefined' ) options.expiration = 30000;
+
+    // Check - sendTopic options
     return this._parent.sendTopic( this.serverExchange.exchange, routingKey , message, {send:optionsLoc} )
     .then(function( result ){
+        // console.log(' --- send result', result, corrId);
+        if( typeof(optionsLoc.expiration)!='undefined' )
+            _setExpirationTimer.bind(this)(corrId,optionsLoc.expiration);
+
         return this.correlations[ corrId ].promise;
     }.bind(this))
     .catch( function(err){ return when.reject( err );});
@@ -976,13 +1116,14 @@ RpcTopicClient.prototype.send = function( routingKey, message, options ){
  * @param  {[type]} incMsg [description]
  * @return {[type]}        [description]
  */
+
 function _processRPC( incMsg, eventFunc, queueResponseOptions ){
     if(
         typeof(incMsg.messageObj.properties)=='undefined' ||
         typeof(incMsg.messageObj.properties.replyTo)=='undefined'
     ){
         // NEED LOG SOMEBODY ABOUT NOWHERE SEND RESPONSE
-        return console.log('Expected replyTo property in message');
+        return console.error('Expected replyTo property in message');
     }
 
     var rs = eventFunc( incMsg );
@@ -1107,6 +1248,11 @@ function _received( incMsg ){
     ){
         this.correlations[ incMsg.messageObj.properties.correlationId ].resolve( incMsg );
         delete( this.correlations[ incMsg.messageObj.properties.correlationId ] );
+
+        if( typeof( this.expiredTimers[ incMsg.messageObj.properties.correlationId ] )!='undefined' ){
+            clearTimeout( this.expiredTimers[ incMsg.messageObj.properties.correlationId ] );
+            delete( this.expiredTimers[ incMsg.messageObj.properties.correlationId ] );
+        }
     }
 }
 
@@ -1127,4 +1273,20 @@ function _addListener( eventKey, listener ){
         // console.log( 'listener of "'+eventKey +'" exists', this._enity[ ekey ] );
     }
     return this._enity[ ekey ] ;
+}
+
+// expected bind this
+function _setExpirationTimer( corrId, timeout ){
+    if( typeof(this)=='undefined' ) return false;
+
+    timeout = parseInt(timeout);
+    if(!timeout) return false;
+
+    this.expiredTimers[ corrId ] = setTimeout(function(){
+        clearTimeout( this.expiredTimers[ corrId ] );
+        this.correlations[ corrId ].reject( 'Message timeout - ' + timeout );
+        delete( this.correlations[ corrId ], this.expiredTimers[ corrId ] );
+    }.bind(this), timeout );
+
+    return this.expiredTimers[ corrId ];
 }

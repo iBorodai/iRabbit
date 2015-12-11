@@ -23,6 +23,15 @@
       , "amqplib": "~0.4"
       , "underscore":"~1.8"
       , "node-uuid":"~1.4"
+      , "log4js": "~0.6"
+  },
+  "devDependencies": {
+    "blanket": "^1.1.9",
+    "chai": "^3.3.0",
+    "mocha": "^2.3.3",
+    "rewire": "^2.3.4",
+    "sinon": "^1.17.2",
+    "sinon-as-promised": "^4.0.0"
   },
   "author": {
     "name": "Ivan Boroday",

@@ -1,0 +1,7 @@
+{
+  "appenders": [
+    { "type": "console" },
+    { "type": "file", "filename": "logs/log-calls.log", "category": "logCalls" }
+  ]
+  , "replaceConsole": true
+}
